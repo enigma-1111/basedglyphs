@@ -205,6 +205,51 @@ export function heightAt(x: number, z: number): number {
   return h;
 }
 
+function shadeRelief(ctx: CanvasRenderingContext2D, size: number) {
+  const cell = 192;
+  const small = document.createElement("canvas");
+  small.width = cell;
+  small.height = cell;
+  const g = small.getContext("2d");
+  if (!g) return;
+  const img = g.createImageData(cell, cell);
+  const data = img.data;
+  for (let py = 0; py < cell; py += 1) {
+    const z = ((py + 0.5) / cell) * SPAN;
+    for (let px = 0; px < cell; px += 1) {
+      const x = ((px + 0.5) / cell) * SPAN;
+      const h = heightAt(x, z);
+      let r: number;
+      let gv: number;
+      let b: number;
+      if (x < 13) {
+        const shimmer = 0.9 + Math.sin(z * 0.35 + x) * 0.08;
+        r = 18 * shimmer;
+        gv = 78 * shimmer;
+        b = 92 * shimmer;
+      } else if (x < 24) {
+        const bank = (x - 13) / 11;
+        r = 64 + bank * 30 + h * 6;
+        gv = 46 + bank * 14;
+        b = 24 + bank * 8;
+      } else {
+        const t = Math.min(1, Math.max(0, (h - 0.15) / 2.3));
+        r = 136 + t * 90;
+        gv = 96 + t * 64;
+        b = 50 + t * 50;
+      }
+      const i = (py * cell + px) * 4;
+      data[i] = r;
+      data[i + 1] = gv;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(small, 0, 0, size, size);
+}
+
 export function pushOut(x: number, z: number): { x: number; z: number } {
   let px = x;
   let pz = z;
@@ -261,19 +306,10 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
   const ctx = canvas.getContext("2d");
   if (!ctx) return { mapUrl: "", glyphs: [], spawn: { x: SPAWN.x, z: SPAWN.z } };
   const plot = (x: number, z: number) => ({ px: (x / SPAN) * size, py: (z / SPAN) * size });
-  ctx.fillStyle = "#c9a36a";
-  ctx.fillRect(0, 0, size, size);
+  shadeRelief(ctx, size);
   const river = (13 / SPAN) * size;
   const field = (24 / SPAN) * size;
-  const grad = ctx.createLinearGradient(0, 0, field, 0);
-  grad.addColorStop(0, "#1d5c66");
-  grad.addColorStop(0.55, "#2f7f86");
-  grad.addColorStop(1, "#245e62");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, river, size);
-  ctx.fillStyle = "#5c4128";
-  ctx.fillRect(river, 0, field - river, size);
-  ctx.strokeStyle = "rgba(28, 18, 10, 0.28)";
+  ctx.strokeStyle = "rgba(28, 18, 10, 0.22)";
   ctx.lineWidth = 1;
   for (let z = 0; z < SPAN; z += 2.4) {
     const y = (z / SPAN) * size;
@@ -282,13 +318,13 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
     ctx.lineTo(field - 2, y);
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(110, 72, 36, 0.35)";
-  ctx.lineWidth = 1.25;
-  for (let z = 4; z < SPAN; z += 5) {
+  ctx.strokeStyle = "rgba(90, 58, 28, 0.28)";
+  ctx.lineWidth = 1.1;
+  for (let z = 4; z < SPAN; z += 6) {
     ctx.beginPath();
-    for (let x = 26; x < SPAN; x += 1.6) {
+    for (let x = 26; x < SPAN; x += 2) {
       const y = heightAt(x, z);
-      const point = plot(x, z + Math.sin(x * 0.17 + z * 0.05) * y * 0.35);
+      const point = plot(x, z + Math.sin(x * 0.17 + z * 0.05) * y * 0.22);
       if (x === 26) ctx.moveTo(point.px, point.py);
       else ctx.lineTo(point.px, point.py);
     }
@@ -329,6 +365,21 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
   for (const [label, x, z] of labels) {
     const point = plot(x, z);
     ctx.fillText(label, point.px + 7, point.py - 4);
+  }
+  ctx.fillStyle = "#c6a15b";
+  for (const tool of TOOL_PICKUPS) {
+    const point = plot(tool.x, tool.z);
+    ctx.beginPath();
+    ctx.moveTo(point.px, point.py - 8);
+    ctx.lineTo(point.px + 7, point.py);
+    ctx.lineTo(point.px, point.py + 8);
+    ctx.lineTo(point.px - 7, point.py);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#3b2918";
+    ctx.font = "600 13px Cinzel, serif";
+    ctx.fillText(tool.name, point.px + 10, point.py + 4);
+    ctx.fillStyle = "#c6a15b";
   }
   ctx.strokeStyle = "#5c4030";
   ctx.lineWidth = 8;

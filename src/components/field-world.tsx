@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import {
   heightAt,
@@ -20,7 +20,7 @@ import {
   type WorldSurvey,
 } from "@/game/field";
 import { mediaUrl } from "@/lib/collection";
-import { scrape } from "@/game/sfx";
+import { scrape, step } from "@/game/sfx";
 
 declare global {
   interface Window {
@@ -179,11 +179,13 @@ function Dunes({ maps }: { maps: TerrainMaps | null }) {
           soilMap: { value: null },
           waterMap: { value: null },
           ready: { value: 0 },
+          time: { value: 0 },
+          sunDir: { value: new THREE.Vector3(0.45, 0.82, 0.28).normalize() },
         },
         vertexShader:
-          "varying vec3 vWorld; varying float vH; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWorld = w.xyz; vH = position.y; gl_Position = projectionMatrix * viewMatrix * w; }",
+          "varying vec3 vWorld; varying vec3 vNormal; varying float vH; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWorld = w.xyz; vH = position.y; vNormal = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }",
         fragmentShader:
-          "varying vec3 vWorld; varying float vH; uniform sampler2D sandMap; uniform sampler2D soilMap; uniform sampler2D waterMap; uniform float ready; void main(){ vec3 sand = vec3(0.82,0.66,0.45); vec3 soil = vec3(0.36,0.26,0.15); vec3 water = vec3(0.14,0.36,0.4); if (ready > 0.5) { vec2 uv = vWorld.xz * 0.1; sand = texture2D(sandMap, uv).rgb; soil = texture2D(soilMap, uv * 1.2).rgb; water = texture2D(waterMap, uv * 0.8).rgb; } float river = smoothstep(14.4, 11.4, vWorld.x); float field = smoothstep(26.0, 15.2, vWorld.x) * (1.0 - river); float lift = clamp((vH - 0.3) / 2.4, 0.0, 1.0); vec3 col = mix(sand * (0.86 + lift * 0.2), soil, field); col = mix(col, water, river); gl_FragColor = vec4(col, 1.0); }",
+          "varying vec3 vWorld; varying vec3 vNormal; varying float vH; uniform sampler2D sandMap; uniform sampler2D soilMap; uniform sampler2D waterMap; uniform float ready; uniform float time; uniform vec3 sunDir; void main(){ vec3 sand = vec3(0.82,0.66,0.45); vec3 soil = vec3(0.36,0.26,0.15); vec3 water = vec3(0.14,0.36,0.4); if (ready > 0.5) { vec2 uv = vWorld.xz * 0.28; sand = texture2D(sandMap, uv).rgb; soil = texture2D(soilMap, uv * 1.15).rgb; water = texture2D(waterMap, uv * 0.72 + vec2(time * 0.018, time * 0.006)).rgb; } float river = smoothstep(14.4, 11.4, vWorld.x); float field = smoothstep(26.0, 15.2, vWorld.x) * (1.0 - river); float lift = clamp((vH - 0.3) / 2.4, 0.0, 1.0); vec3 col = mix(sand * (0.9 + lift * 0.14), soil, field); col = mix(col, water, river); float ndl = clamp(dot(normalize(vNormal), normalize(sunDir)), 0.0, 1.0); col *= 0.62 + ndl * 0.62; float glint = pow(max(0.0, dot(reflect(-normalize(sunDir), normalize(vNormal)), vec3(0.15, 0.35, 0.85))), 24.0); col += vec3(0.9, 0.82, 0.55) * glint * river * 0.22; gl_FragColor = vec4(col, 1.0); }",
       }),
     [],
   );
@@ -194,6 +196,9 @@ function Dunes({ maps }: { maps: TerrainMaps | null }) {
     mat.uniforms.waterMap.value = maps.water;
     mat.uniforms.ready.value = 1;
   }, [maps, mat]);
+  useFrame((_, delta) => {
+    mat.uniforms.time.value += Math.min(0.05, delta);
+  });
   useEffect(
     () => () => {
       geo.dispose();
@@ -309,11 +314,51 @@ function Sphinx({ x, z, maps }: { x: number; z: number; maps: TerrainMaps | null
   );
 }
 
-function Monuments({ maps }: { maps: TerrainMaps | null }) {
+function Palm({ x, z }: { x: number; z: number }) {
+  const crown = useRef<THREE.Group>(null);
+  const y = heightAt(x, z);
+  useFrame(({ clock }) => {
+    if (!crown.current) return;
+    const t = clock.elapsedTime;
+    crown.current.rotation.z = Math.sin(t * 0.7 + x) * 0.07;
+    crown.current.rotation.x = Math.cos(t * 0.5 + z) * 0.04;
+  });
   return (
-    <group>
-      <mesh position={[2, 28, 40]}>
-        <sphereGeometry args={[3.1, 18, 14]} />
+    <group position={[x, y, z]}>
+      <mesh position={[0, 1.6, 0]}>
+        <cylinderGeometry args={[0.08, 0.16, 3.2, 6]} />
+        <meshLambertMaterial color={BARK} />
+      </mesh>
+      <group ref={crown} position={[0, 3.15, 0]}>
+        {[0, 1, 2, 3, 4, 5].map((leaf) => {
+          const angle = (leaf / 6) * Math.PI * 2;
+          return (
+            <mesh key={leaf} position={[Math.cos(angle) * 0.55, 0, Math.sin(angle) * 0.55]} rotation={[1.05, angle, 0]}>
+              <coneGeometry args={[0.16, 1.5, 4]} />
+              <meshLambertMaterial color={FROND} />
+            </mesh>
+          );
+        })}
+      </group>
+    </group>
+  );
+}
+
+function Monuments({ maps }: { maps: TerrainMaps | null }) {
+  const root = useRef<THREE.Group>(null);
+  useLayoutEffect(() => {
+    root.current?.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh && !mesh.geometry?.type?.includes("Sphere")) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+  }, [maps]);
+  return (
+    <group ref={root}>
+      <mesh position={[12, 58, 6]}>
+        <sphereGeometry args={[5.4, 18, 14]} />
         <meshBasicMaterial color={SUN} />
       </mesh>
       {PYRAMIDS.map((pyramid) => {
@@ -367,30 +412,9 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
         <cylinderGeometry args={[0.28, 0.28, 0.35, 8]} />
         <Rock maps={maps} />
       </mesh>
-      {PALMS.map(([x, z]) => {
-        const y = heightAt(x, z);
-        return (
-          <group key={`${x}-${z}`} position={[x, y, z]}>
-            <mesh position={[0, 1.6, 0]}>
-              <cylinderGeometry args={[0.08, 0.16, 3.2, 6]} />
-              <meshLambertMaterial color={BARK} />
-            </mesh>
-            {[0, 1, 2, 3, 4, 5].map((leaf) => {
-              const angle = (leaf / 6) * Math.PI * 2;
-              return (
-                <mesh
-                  key={leaf}
-                  position={[Math.cos(angle) * 0.55, 3.15, Math.sin(angle) * 0.55]}
-                  rotation={[1.05, angle, 0]}
-                >
-                  <coneGeometry args={[0.16, 1.5, 4]} />
-                  <meshLambertMaterial color={FROND} />
-                </mesh>
-              );
-            })}
-          </group>
-        );
-      })}
+      {PALMS.map(([x, z]) => (
+        <Palm key={`${x}-${z}`} x={x} z={z} />
+      ))}
       {[18, 34, 46, 62, 78].map((z) => (
         <group key={`reed-${z}`} position={[13.6, heightAt(13.6, z), z]}>
           {[0, 0.35, -0.28].map((offset) => (
@@ -629,6 +653,100 @@ function ToolMesh({ id }: { id: ToolId }) {
   return null;
 }
 
+function ToolDrop({ id, x, z }: { id: ToolId; x: number; z: number }) {
+  const bob = useRef<THREE.Group>(null);
+  const y = heightAt(x, z);
+  useFrame(({ clock }) => {
+    if (!bob.current) return;
+    bob.current.position.y = y + 0.46 + Math.sin(clock.elapsedTime * 2.1 + x) * 0.07;
+    bob.current.rotation.y = clock.elapsedTime * 0.55;
+  });
+  return (
+    <group position={[x, 0, z]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y + 0.04, 0]}>
+        <ringGeometry args={[0.32, 0.46, 24]} />
+        <meshBasicMaterial color={GOLD} transparent opacity={0.9} />
+      </mesh>
+      <group ref={bob}>
+        <ToolMesh id={id} />
+      </group>
+    </group>
+  );
+}
+
+function Motes() {
+  const ref = useRef<THREE.Points>(null);
+  const geo = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    const count = 64;
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i += 1) {
+      pos[i * 3] = Math.random() * SPAN;
+      pos[i * 3 + 1] = 0.8 + Math.random() * 5;
+      pos[i * 3 + 2] = Math.random() * SPAN;
+    }
+    geometry.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return geometry;
+  }, []);
+  useFrame((_, delta) => {
+    const attr = ref.current?.geometry.attributes.position as THREE.BufferAttribute | undefined;
+    if (!attr) return;
+    const arr = attr.array as Float32Array;
+    const dt = Math.min(0.05, delta);
+    for (let i = 0; i < arr.length; i += 3) {
+      arr[i] += dt * 0.4;
+      arr[i + 1] += Math.sin(arr[i] * 0.15 + arr[i + 2]) * dt * 0.12;
+      if (arr[i] > SPAN) arr[i] -= SPAN;
+      if (arr[i + 1] > 7) arr[i + 1] = 0.7;
+    }
+    attr.needsUpdate = true;
+  });
+  useEffect(() => () => geo.dispose(), [geo]);
+  return (
+    <points ref={ref} geometry={geo} frustumCulled={false}>
+      <pointsMaterial color={0xf6e6c4} size={0.07} transparent opacity={0.4} depthWrite={false} sizeAttenuation />
+    </points>
+  );
+}
+
+function FootDust({ pose }: { pose: RefObject<Walker> }) {
+  const group = useRef<THREE.Group>(null);
+  const last = useRef({ x: SPAWN.x, z: SPAWN.z, acc: 0, i: 0 });
+  useFrame((_, delta) => {
+    const dt = Math.min(0.05, delta);
+    const here = pose.current;
+    const moved = Math.hypot(here.x - last.current.x, here.z - last.current.z);
+    last.current.x = here.x;
+    last.current.z = here.z;
+    const root = group.current;
+    if (!root) return;
+    root.children.forEach((child) => {
+      child.position.y += dt * 0.45;
+      const next = Math.max(0, child.scale.x - dt * 1.1);
+      child.scale.setScalar(next);
+    });
+    if (moved < 0.01) return;
+    last.current.acc += moved;
+    if (last.current.acc < 1.15) return;
+    last.current.acc = 0;
+    const puff = root.children[last.current.i % root.children.length];
+    last.current.i += 1;
+    puff.position.set(here.x, heightAt(here.x, here.z) + 0.06, here.z);
+    puff.scale.setScalar(0.32);
+    step();
+  });
+  return (
+    <group ref={group}>
+      {Array.from({ length: 8 }, (_, index) => (
+        <mesh key={index} scale={0}>
+          <sphereGeometry args={[0.14, 6, 5]} />
+          <meshBasicMaterial color={SAND} transparent opacity={0.4} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Surveyor({
   pose,
   heldUrl,
@@ -659,13 +777,17 @@ function Surveyor({
   return (
     <>
       <group ref={body}>
-        <mesh position={[0, 0.85, 0]}>
+        <mesh position={[0, 0.85, 0]} castShadow>
           <coneGeometry args={[0.38, 1.45, 10]} />
           <meshLambertMaterial color={LINEN} />
         </mesh>
-        <mesh position={[0, 1.72, 0]}>
+        <mesh position={[0, 1.72, 0]} castShadow>
           <sphereGeometry args={[0.2, 12, 12]} />
           <meshLambertMaterial color={SKIN} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+          <circleGeometry args={[0.34, 14]} />
+          <meshBasicMaterial color={0x3a2a18} transparent opacity={0.28} depthWrite={false} />
         </mesh>
         <mesh position={[0, 1.96, 0]}>
           <cylinderGeometry args={[0.32, 0.32, 0.05, 12]} />
@@ -685,9 +807,7 @@ function Surveyor({
         <DigSite key={site.tokenId} site={site} pose={pose} pits={pits} />
       ))}
       {TOOL_PICKUPS.filter((pickup) => !ownedTools.includes(pickup.id)).map((pickup) => (
-        <group key={pickup.id} position={[pickup.x, heightAt(pickup.x, pickup.z) + 0.35, pickup.z]}>
-          <ToolMesh id={pickup.id} />
-        </group>
+        <ToolDrop key={pickup.id} id={pickup.id} x={pickup.x} z={pickup.z} />
       ))}
     </>
   );
@@ -722,6 +842,8 @@ function Walk({
   const look = useRef(new THREE.Vector3());
   const trauma = useRef(0);
   const shakeTime = useRef(0);
+  const hitstop = useRef(0);
+  const sun = useRef<THREE.DirectionalLight>(null);
   const maps = useTerrainMaps();
   const reduceMotion = useRef(false);
 
@@ -824,9 +946,11 @@ function Walk({
   useFrame((_, delta) => {
     const dt = Math.min(0.05, delta);
     const playing = phase === "play";
+    const frozen = hitstop.current > 0;
+    if (frozen) hitstop.current = Math.max(0, hitstop.current - dt);
     let throttle = 0;
     let steer = 0;
-    if (playing) {
+    if (playing && !frozen) {
       const held = keys.current;
       if (held.has("KeyW") || held.has("ArrowUp")) throttle += 1;
       if (held.has("KeyS") || held.has("ArrowDown")) throttle -= 1;
@@ -835,26 +959,37 @@ function Walk({
       throttle = Math.max(-1, Math.min(1, throttle + stick.current.forward));
       steer = Math.max(-1, Math.min(1, steer + stick.current.steer));
     }
-    yaw.current += steer * 2.6 * dt;
-    const wet = at.current.x < 13 ? 0.5 : 1;
-    const target = playing ? throttle * 7.2 * wet : 0;
-    speed.current += (target - speed.current) * Math.min(1, dt * 7);
+    if (!frozen) {
+      yaw.current += steer * 2.6 * dt;
+      const wet = at.current.x < 13 ? 0.5 : 1;
+      const target = playing ? throttle * 7.2 * wet : 0;
+      speed.current += (target - speed.current) * Math.min(1, dt * 7);
+      const stepX = -Math.sin(yaw.current);
+      const stepZ = -Math.cos(yaw.current);
+      let nx = at.current.x + stepX * speed.current * dt;
+      let nz = at.current.z + stepZ * speed.current * dt;
+      const pushed = pushOut(nx, nz);
+      nx = Math.min(SPAN - 3, Math.max(3, pushed.x));
+      nz = Math.min(SPAN - 3, Math.max(3, pushed.z));
+      at.current.x = nx;
+      at.current.z = nz;
+      pose.current = { x: nx, z: nz, yaw: yaw.current };
+    }
+    const nx = at.current.x;
+    const nz = at.current.z;
     const fx = -Math.sin(yaw.current);
     const fz = -Math.cos(yaw.current);
-    let nx = at.current.x + fx * speed.current * dt;
-    let nz = at.current.z + fz * speed.current * dt;
-    const pushed = pushOut(nx, nz);
-    nx = Math.min(SPAN - 3, Math.max(3, pushed.x));
-    nz = Math.min(SPAN - 3, Math.max(3, pushed.z));
-    at.current.x = nx;
-    at.current.z = nz;
-    pose.current = { x: nx, z: nz, yaw: yaw.current };
 
     const y = heightAt(nx, nz);
-    desired.current.set(nx - fx * 7.6, y + 4.5, nz - fz * 7.6);
+    desired.current.set(nx - fx * 8.2, y + 4.35, nz - fz * 8.2);
     camera.position.lerp(desired.current, 1 - Math.exp(-4.5 * dt));
-    look.current.set(nx, y + 1.35, nz);
+    look.current.set(nx + fx * 2.2, y + 1.28, nz + fz * 2.2);
     camera.lookAt(look.current);
+    if (sun.current) {
+      sun.current.position.set(nx - 16, y + 26, nz + 18);
+      sun.current.target.position.set(nx, y, nz);
+      sun.current.target.updateMatrixWorld();
+    }
     shakeTime.current += dt;
     trauma.current = Math.max(0, trauma.current - dt * 0.9);
     const mag = trauma.current * trauma.current;
@@ -875,7 +1010,7 @@ function Walk({
       }
     }
 
-    const sweeping = playing && (brushHeld.current || keys.current.has("Space"));
+    const sweeping = playing && !frozen && (brushHeld.current || keys.current.has("Space"));
     let bar = 0;
     let note = "";
     if (sweeping && best && bestD < 3.4) {
@@ -891,7 +1026,10 @@ function Walk({
         if (pit.amt >= 1) {
           pit.amt = 0;
           pit.layer += 1;
-          if (!reduceMotion.current) trauma.current = Math.min(1, trauma.current + 0.18);
+          if (!reduceMotion.current) {
+            trauma.current = Math.min(1, trauma.current + 0.18);
+            hitstop.current = 0.05;
+          }
           if (pit.layer >= best.layers.length) pit.rise = 0.04;
         }
       }
@@ -936,12 +1074,29 @@ function Walk({
   return (
     <>
       <Sky />
-      <hemisphereLight args={[SUN, SOIL, 0.85]} />
-      <ambientLight intensity={0.28} />
-      <directionalLight position={[28, 46, 18]} intensity={1.45} color={SUN} />
-      <fog attach="fog" args={[DUSK, 36, 110]} />
+      <hemisphereLight args={[SUN, SOIL, 0.72]} />
+      <ambientLight intensity={0.22} />
+      <directionalLight
+        ref={sun}
+        castShadow
+        intensity={1.7}
+        color={SUN}
+        position={[SPAWN.x - 16, 28, SPAWN.z + 18]}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={4}
+        shadow-camera-far={70}
+        shadow-camera-left={-22}
+        shadow-camera-right={22}
+        shadow-camera-top={22}
+        shadow-camera-bottom={-22}
+        shadow-bias={-0.0006}
+      />
+      <fog attach="fog" args={[DUSK, 42, 120]} />
       <Dunes maps={maps} />
       <Monuments maps={maps} />
+      <Motes />
+      <FootDust pose={pose} />
       <Surveyor pose={pose} heldUrl={heldUrl} sites={sites} pits={pits} ownedTools={ownedTools} />
     </>
   );

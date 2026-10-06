@@ -11,11 +11,12 @@ const LEGEND: { kind: LegendKind; label: string; note: string }[] = [
   { kind: "obelisk", label: "Needle", note: "A tapered stone spike. Use it to keep a bearing." },
   { kind: "ruin", label: "Columns", note: "A short row of standing columns." },
   { kind: "grove", label: "Palms", note: "Shade on the west side of camp." },
+  { kind: "tool", label: "Tool cache", note: "A gold diamond. Brush, trowel, or mallet. Not a seal." },
   { kind: "dust", label: "Still buried", note: "Not marked. The map does not lead you to a seal." },
   { kind: "kept", label: "Lifted", note: "Already in your satchel. It stays on the map." },
 ];
 
-type LegendKind = LandmarkKind | "you" | "dust" | "kept";
+type LegendKind = LandmarkKind | "you" | "dust" | "kept" | "tool";
 
 function Mark({ kind }: { kind: LegendKind }) {
   return (
@@ -26,6 +27,7 @@ function Mark({ kind }: { kind: LegendKind }) {
       {kind === "obelisk" ? <path d="M6.5 1.5h3L11 14.5H5Z" fill="currentColor" /> : null}
       {kind === "ruin" ? <path d="M1.5 14.5V6.5h3v8h2V2.5h3v12h2V8h3v6.5Z" fill="currentColor" /> : null}
       {kind === "grove" ? <path d="M8 1.5 12.5 8H10l3 6.5H3L6 8H3.5Z" fill="currentColor" /> : null}
+      {kind === "tool" ? <path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="currentColor" /> : null}
       {kind === "you" ? <path d="M8 1 14 14.5 8 11.2 2 14.5Z" fill="currentColor" /> : null}
       {kind === "dust" ? <circle cx="8" cy="8" r="3" fill="currentColor" /> : null}
       {kind === "kept" ? (
@@ -199,7 +201,7 @@ export function MapSheet({
           </button>
         </div>
         <p className="mt-1 text-sm text-muted">
-          North is up. Pale is desert, dark is the fields, blue is the river. You are near {near}.
+          North is up. Pale ridges are high sand, dark is the fields, blue is the river. Gold diamonds are tools. You are near {near}.
         </p>
         <div className="mt-3">
           <Chart survey={survey} pose={pose} claims={claims} selectedId={selected?.id ?? null} onPick={setSelected} />
@@ -261,7 +263,7 @@ const STEPS = [
   },
   {
     title: "Tools",
-    body: "You start with your hands. Take a brush, a trowel, and a mallet when you find them lying in the survey. Tap a tool to use it.",
+    body: "You start with your hands. Gold diamonds on the map are a brush, a trowel, and a mallet. Take one when you reach it, then tap it to use it.",
   },
   {
     title: "Dig",
@@ -273,7 +275,7 @@ const STEPS = [
   },
   {
     title: "The map",
-    body: "North is up. The river is the blue band on the west, the dark band is the fields, and the triangles are the pyramids. Lifted seals stay marked. Buried ones do not.",
+    body: "North is up. The river is blue on the west, the dark band is the fields, and the triangles are the pyramids. Gold diamonds are tools. Lifted seals stay marked. Buried ones do not.",
   },
   {
     title: "The treasury",
