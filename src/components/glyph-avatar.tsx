@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { avatarLine, lookOf, type Hour, type Metal, type Rank } from "@/lib/avatar";
-import { COLLECTION } from "@/lib/collection";
+import { COLLECTION, mediaUrl } from "@/lib/collection";
 import { useWallet } from "@/lib/wallet-store";
 
 const SKY: Record<Hour, string> = {
@@ -27,33 +27,40 @@ const CAP: Record<Rank, string> = {
 
 export function GlyphAvatar({
   traits,
+  imageUrl,
   hero = false,
 }: {
   traits: Record<string, string>;
+  imageUrl?: string;
   hero?: boolean;
 }) {
   const look = lookOf(traits);
+  const [broken, setBroken] = useState(false);
+  const src = broken ? undefined : mediaUrl(imageUrl);
+  const box = hero ? " size-24" : " size-9";
   return (
     <span
       className={
         "relative grid shrink-0 place-items-center overflow-hidden rounded-control border border-line " +
-        SKY[look.hour] +
-        " " +
-        CAP[look.rank] +
-        (hero ? " size-24" : " size-9")
+        (src ? "bg-bg" : SKY[look.hour] + " " + CAP[look.rank]) +
+        box
       }
       role="img"
       aria-label={avatarLine(traits)}
     >
-      <span
-        className={
-          "grid place-items-center rounded-control font-display leading-none " +
-          PLATE[look.metal] +
-          (hero ? " size-16 text-4xl" : " size-6 text-sm")
-        }
-      >
-        {look.mark}
-      </span>
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setBroken(true)} />
+      ) : (
+        <span
+          className={
+            "grid place-items-center rounded-control font-display leading-none " +
+            PLATE[look.metal] +
+            (hero ? " size-16 text-4xl" : " size-6 text-sm")
+          }
+        >
+          {look.mark}
+        </span>
+      )}
     </span>
   );
 }

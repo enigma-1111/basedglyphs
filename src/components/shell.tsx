@@ -24,7 +24,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-2 sm:px-4">
           <Link to="/" className="flex min-h-11 items-center gap-2 pr-1" aria-label="Glyph Sands home">
             <span className="grid size-9 place-items-center">
-              {worn ? <GlyphAvatar traits={worn.traits} /> : <span className="grid size-9 place-items-center rounded-control border border-line font-display text-lg text-gold">𓂀</span>}
+              {worn ? <GlyphAvatar traits={worn.traits} imageUrl={worn.imageUrl} /> : <span className="grid size-9 place-items-center rounded-control border border-line font-display text-lg text-gold">𓂀</span>}
             </span>
             <span className="hidden font-display text-sm tracking-wide text-ink sm:inline">Glyph Sands</span>
           </Link>

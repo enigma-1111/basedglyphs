@@ -190,7 +190,7 @@ export function SandsHud({
         </div>
         <div className="pointer-events-none flex items-center gap-2 rounded-control border border-line bg-bg px-3 py-2">
           <Scarab />
-          {worn ? <GlyphAvatar traits={worn.traits} /> : null}
+          {worn ? <GlyphAvatar traits={worn.traits} imageUrl={worn.imageUrl} /> : null}
           <span className="font-display text-lg text-gold tabular-nums">
             {found}/{total}
           </span>
@@ -411,7 +411,7 @@ export function SandsHud({
             {walletNote ? <p className="mt-2 text-sm text-muted">{walletNote}</p> : null}
             {worn ? (
               <div className="mt-3 flex items-center gap-3">
-                <GlyphAvatar traits={worn.traits} hero />
+                <GlyphAvatar traits={worn.traits} imageUrl={worn.imageUrl} hero />
                 <p className="text-sm text-muted">{avatarLine(worn.traits)}</p>
               </div>
             ) : null}

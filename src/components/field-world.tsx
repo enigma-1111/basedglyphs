@@ -160,6 +160,151 @@ function useGlyphTexture(url?: string) {
   return map;
 }
 
+const reliefCache = new Map<string, { color: THREE.Texture | null; normal: THREE.Texture | null }>();
+const RELIEF = new THREE.Vector2(0.65, 0.65);
+
+function paintOf(image: CanvasImageSource): THREE.Texture | null {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(image, 0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function useGlyphRelief(url?: string) {
+  const [maps, setMaps] = useState<{ color: THREE.Texture | null; normal: THREE.Texture | null }>({
+    color: null,
+    normal: null,
+  });
+  useEffect(() => {
+    if (!url) {
+      setMaps({ color: null, normal: null });
+      return;
+    }
+    const cached = reliefCache.get(url);
+    if (cached) {
+      setMaps(cached);
+      return;
+    }
+    let live = true;
+    const img = new Image();
+    img.onload = () => {
+      const pack = { color: paintOf(img), normal: reliefOf(img) };
+      reliefCache.set(url, pack);
+      if (live) setMaps(pack);
+    };
+    img.src = mediaUrl(url) ?? url;
+    return () => {
+      live = false;
+    };
+  }, [url]);
+  return maps;
+}
+function reliefOf(image: CanvasImageSource): THREE.Texture | null {
+  try {
+    const size = 192;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0, size, size);
+    const src = ctx.getImageData(0, 0, size, size);
+    const out = ctx.createImageData(size, size);
+    const data = src.data;
+    const lum = (x: number, y: number) => {
+      const i = (y * size + x) * 4;
+      return data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    };
+    for (let y = 0; y < size; y += 1) {
+      const ym = y > 0 ? y - 1 : y;
+      const yp = y < size - 1 ? y + 1 : y;
+      for (let x = 0; x < size; x += 1) {
+        const xm = x > 0 ? x - 1 : x;
+        const xp = x < size - 1 ? x + 1 : x;
+        const dx = (lum(xp, y) - lum(xm, y)) * 3.2;
+        const dy = (lum(x, yp) - lum(x, ym)) * 3.2;
+        const nx = -dx;
+        const ny = -dy;
+        const nz = 42;
+        const len = Math.hypot(nx, ny, nz) || 1;
+        const o = (y * size + x) * 4;
+        out.data[o] = (nx / len) * 127 + 128;
+        out.data[o + 1] = (ny / len) * 127 + 128;
+        out.data[o + 2] = (nz / len) * 127 + 128;
+        out.data[o + 3] = 255;
+      }
+    }
+    const plate = document.createElement("canvas");
+    plate.width = size;
+    plate.height = size;
+    plate.getContext("2d")?.putImageData(out, 0, 0);
+    const tex = new THREE.CanvasTexture(plate);
+    tex.colorSpace = THREE.NoColorSpace;
+    return tex;
+  } catch {
+    return null;
+  }
+}
+
+function GlyphFace({
+  color,
+  normal,
+  position,
+  rotation,
+}: {
+  color: THREE.Texture | null;
+  normal: THREE.Texture | null;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  const mat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.55,
+        metalness: 0.04,
+        toneMapped: true,
+      }),
+    [],
+  );
+  useLayoutEffect(() => {
+    mat.map = color;
+    mat.emissiveMap = color;
+    mat.emissive = new THREE.Color(color ? 0xffffff : 0x000000);
+    mat.emissiveIntensity = color ? 0.55 : 0;
+    mat.normalMap = normal;
+    mat.normalScale.copy(RELIEF);
+    if (color) color.needsUpdate = true;
+    mat.needsUpdate = true;
+  }, [color, normal, mat]);
+  return (
+    <mesh position={position} rotation={rotation} material={mat}>
+      <planeGeometry args={[1.36, 1.36]} />
+    </mesh>
+  );
+}
+
+function GlyphBody({ color, normal }: { color: THREE.Texture | null; normal: THREE.Texture | null }) {
+  return (
+    <group position={[0, 0.9, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[1.5, 1.5, 0.42]} />
+        <meshStandardMaterial color={0x3a2c1c} roughness={0.38} metalness={0.62} />
+      </mesh>
+      <GlyphFace color={color} normal={normal} position={[0, 0, 0.216]} />
+      <GlyphFace color={color} normal={normal} position={[0, 0, -0.216]} rotation={[0, Math.PI, 0]} />
+    </group>
+  );
+}
+
 function Dunes({ maps }: { maps: TerrainMaps | null }) {
   const geo = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(SPAN, SPAN, 72, 72);
@@ -749,61 +894,6 @@ function FootDust({ pose }: { pose: RefObject<Walker> }) {
   );
 }
 
-const METAL_COLOR = { gold: GOLD, silver: 0xd8d2c6, iron: 0x8a8074, copper: COPPER } as const;
-const HOUR_COLOR = { day: SUN, morning: 0xf3ead7, evening: DUSK, night: 0x2c3344 } as const;
-
-function useMarkTexture(mark: string) {
-  const [map, setMap] = useState<THREE.CanvasTexture | null>(null);
-  useEffect(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, 256, 256);
-    ctx.fillStyle = "#14110e";
-    ctx.fillRect(28, 28, 200, 200);
-    ctx.fillStyle = "#f3ead7";
-    ctx.font = "128px serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(mark || "𓂀", 128, 140);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
-    setMap(tex);
-    return () => tex.dispose();
-  }, [mark]);
-  return map;
-}
-
-function RankCap({ rank }: { rank: AvatarLook["rank"] }) {
-  if (rank === "work") return null;
-  if (rank === "priest") {
-    return (
-      <mesh position={[0, 2.28, 0]} castShadow>
-        <cylinderGeometry args={[0.05, 0.1, 0.72, 6]} />
-        <meshLambertMaterial color={GOLD} />
-      </mesh>
-    );
-  }
-  if (rank === "noble") {
-    return (
-      <mesh position={[0, 1.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.3, 0.045, 8, 18]} />
-        <meshLambertMaterial color={GOLD} />
-      </mesh>
-    );
-  }
-  const tall = rank === "pharaoh";
-  return (
-    <mesh position={[0, tall ? 2.22 : 2.08, 0]} castShadow>
-      <coneGeometry args={[tall ? 0.3 : 0.16, tall ? 0.52 : 0.28, 4]} />
-      <meshLambertMaterial color={GOLD} />
-    </mesh>
-  );
-}
-
 function Surveyor({
   pose,
   heldUrl,
@@ -821,9 +911,8 @@ function Surveyor({
 }) {
   const body = useRef<THREE.Group>(null);
   const last = useRef({ x: SPAWN.x, z: SPAWN.z, step: 0 });
-  const heldMap = useGlyphTexture(heldUrl);
-  const markMap = useMarkTexture(worn?.mark ?? "𓂀");
-  const metal = worn ? METAL_COLOR[worn.metal] : LINEN;
+  const heldMap = useGlyphTexture(worn ? undefined : heldUrl);
+  const relief = useGlyphRelief(worn ? heldUrl : undefined);
   useFrame(() => {
     const here = pose.current;
     if (!body.current) return;
@@ -831,54 +920,46 @@ function Surveyor({
     last.current.x = here.x;
     last.current.z = here.z;
     last.current.step += moved * 9;
-    const hop = Math.sin(last.current.step) * Math.min(0.05, moved * 6);
+    const hop = Math.sin(last.current.step) * Math.min(0.06, moved * 7);
     body.current.position.set(here.x, heightAt(here.x, here.z) + hop, here.z);
     body.current.rotation.y = here.yaw + Math.PI;
+    body.current.rotation.x = worn ? 0.38 : 0;
+    body.current.rotation.z = worn ? Math.sin(last.current.step) * 0.045 : 0;
   });
   return (
     <>
       <group ref={body}>
-        <mesh position={[0, 0.85, 0]} castShadow>
-          <coneGeometry args={[0.38, 1.45, 10]} />
-          <meshLambertMaterial color={metal} />
-        </mesh>
         {worn ? (
-          <>
-            <mesh position={[0, 1.7, -0.02]}>
-              <circleGeometry args={[0.46, 20]} />
-              <meshBasicMaterial color={HOUR_COLOR[worn.hour]} />
-            </mesh>
-            <mesh position={[0, 1.15, 0.22]}>
-              <planeGeometry args={[0.62, 0.62]} />
-              <meshBasicMaterial map={markMap ?? undefined} toneMapped={false} />
-            </mesh>
-            <RankCap rank={worn.rank} />
-          </>
+          <GlyphBody color={relief.color} normal={relief.normal} />
         ) : (
-          <mesh position={[0, 1.72, 0]} castShadow>
-            <sphereGeometry args={[0.2, 12, 12]} />
-            <meshLambertMaterial color={SKIN} />
-          </mesh>
+          <>
+            <mesh position={[0, 0.85, 0]} castShadow>
+              <coneGeometry args={[0.38, 1.45, 10]} />
+              <meshLambertMaterial color={LINEN} />
+            </mesh>
+            <mesh position={[0, 1.72, 0]} castShadow>
+              <sphereGeometry args={[0.2, 12, 12]} />
+              <meshLambertMaterial color={SKIN} />
+            </mesh>
+            <mesh position={[0, 1.96, 0]}>
+              <cylinderGeometry args={[0.32, 0.32, 0.05, 12]} />
+              <meshLambertMaterial color={LINEN} />
+            </mesh>
+            <mesh position={[0.28, 1.15, 0.28]} rotation={[0, 0.4, 0]}>
+              <boxGeometry args={[0.28, 0.38, 0.04]} />
+              <meshStandardMaterial
+                map={heldMap ?? undefined}
+                color={heldMap ? 0xffffff : STONE}
+                roughness={0.5}
+                metalness={0.15}
+              />
+            </mesh>
+          </>
         )}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
-          <circleGeometry args={[0.34, 14]} />
+          <circleGeometry args={[0.42, 16]} />
           <meshBasicMaterial color={0x3a2a18} transparent opacity={0.28} depthWrite={false} />
         </mesh>
-        <mesh position={[0, 1.96, 0]}>
-          <cylinderGeometry args={[0.32, 0.32, 0.05, 12]} />
-          <meshLambertMaterial color={worn ? metal : LINEN} />
-        </mesh>
-        {worn ? null : (
-        <mesh position={[0.28, 1.15, 0.28]} rotation={[0, 0.4, 0]}>
-          <boxGeometry args={[0.28, 0.38, 0.04]} />
-          <meshStandardMaterial
-            map={heldMap ?? undefined}
-            color={heldMap ? 0xffffff : STONE}
-            roughness={0.5}
-            metalness={0.15}
-          />
-        </mesh>
-        )}
       </group>
       {sites.map((site) => (
         <DigSite key={site.tokenId} site={site} pose={pose} pits={pits} />

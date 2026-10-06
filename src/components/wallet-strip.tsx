@@ -41,7 +41,7 @@ export function WalletStrip() {
       {note ? <p className="mt-1 text-sm text-muted">{note}</p> : null}
       {worn ? (
         <div className="mt-4 flex items-center gap-3">
-          <GlyphAvatar traits={worn.traits} hero />
+          <GlyphAvatar traits={worn.traits} imageUrl={worn.imageUrl} hero />
           <div>
             <p className="font-display text-lg text-ink">{worn.name}</p>
             <p className="text-sm text-muted">{avatarLine(worn.traits)}</p>
