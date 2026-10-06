@@ -894,6 +894,8 @@ function FootDust({ pose }: { pose: RefObject<Walker> }) {
   );
 }
 
+const DEFAULT_SEAL = "/glyphs/surveyor.png";
+
 function Surveyor({
   pose,
   heldUrl,
@@ -911,8 +913,7 @@ function Surveyor({
 }) {
   const body = useRef<THREE.Group>(null);
   const last = useRef({ x: SPAWN.x, z: SPAWN.z, step: 0 });
-  const heldMap = useGlyphTexture(worn ? undefined : heldUrl);
-  const relief = useGlyphRelief(worn ? heldUrl : undefined);
+  const relief = useGlyphRelief(heldUrl || DEFAULT_SEAL);
   useFrame(() => {
     const here = pose.current;
     if (!body.current) return;
@@ -923,39 +924,13 @@ function Surveyor({
     const hop = Math.sin(last.current.step) * Math.min(0.06, moved * 7);
     body.current.position.set(here.x, heightAt(here.x, here.z) + hop, here.z);
     body.current.rotation.y = here.yaw + Math.PI;
-    body.current.rotation.x = worn ? 0.38 : 0;
-    body.current.rotation.z = worn ? Math.sin(last.current.step) * 0.045 : 0;
+    body.current.rotation.x = 0.42;
+    body.current.rotation.z = Math.sin(last.current.step) * 0.04;
   });
   return (
     <>
       <group ref={body}>
-        {worn ? (
-          <GlyphBody color={relief.color} normal={relief.normal} />
-        ) : (
-          <>
-            <mesh position={[0, 0.85, 0]} castShadow>
-              <coneGeometry args={[0.38, 1.45, 10]} />
-              <meshLambertMaterial color={LINEN} />
-            </mesh>
-            <mesh position={[0, 1.72, 0]} castShadow>
-              <sphereGeometry args={[0.2, 12, 12]} />
-              <meshLambertMaterial color={SKIN} />
-            </mesh>
-            <mesh position={[0, 1.96, 0]}>
-              <cylinderGeometry args={[0.32, 0.32, 0.05, 12]} />
-              <meshLambertMaterial color={LINEN} />
-            </mesh>
-            <mesh position={[0.28, 1.15, 0.28]} rotation={[0, 0.4, 0]}>
-              <boxGeometry args={[0.28, 0.38, 0.04]} />
-              <meshStandardMaterial
-                map={heldMap ?? undefined}
-                color={heldMap ? 0xffffff : STONE}
-                roughness={0.5}
-                metalness={0.15}
-              />
-            </mesh>
-          </>
-        )}
+        <GlyphBody color={relief.color} normal={relief.normal} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
           <circleGeometry args={[0.42, 16]} />
           <meshBasicMaterial color={0x3a2a18} transparent opacity={0.28} depthWrite={false} />
