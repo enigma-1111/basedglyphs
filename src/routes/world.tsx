@@ -6,8 +6,9 @@ import { buildField, rosterFor, SPAWN, type BuriedGlyph, type ToolId, type Walke
 import { loadClaims, loadTools, saveClaims, saveTools } from "@/lib/hunt";
 import { chime, tick, unlockSound } from "@/game/sfx";
 import { useStudio } from "@/lib/store";
-import { treasuryFor, type Difficulty } from "@/lib/treasury";
-import { useWallet } from "@/lib/wallet-store";
+import { lookOf } from "@/lib/avatar";
+import { type Difficulty } from "@/lib/treasury";
+import { useWallet, restoreWorn } from "@/lib/wallet-store";
 
 type Search = { difficulty: Difficulty; qa?: "1" };
 
@@ -38,13 +39,10 @@ function WorldPage() {
   const brushRef = useRef<HTMLDivElement>(null);
   const brushHeld = useRef(false);
   const stick = useRef({ forward: 0, steer: 0 });
-  const heldId = useWallet((store) => store.heldId);
-  const owned = useWallet((store) => store.glyphs);
+  const wornGlyph = useWallet((store) => store.worn);
+  const worn = wornGlyph ? lookOf(wornGlyph.traits) : null;
   const buried = useMemo(() => buildField(rosterFor(difficulty)).glyphs, [difficulty]);
   const found = claims ? buried.filter((glyph) => claims.includes(glyph.tokenId)).length : 0;
-  const held =
-    owned.find((glyph) => glyph.tokenId === heldId) ??
-    treasuryFor("hard").find((glyph) => glyph.tokenId === heldId);
   const ownedTools: ToolId[] = ["hands", ...(pouch ?? [])];
 
   useEffect(() => {
@@ -60,6 +58,7 @@ function WorldPage() {
     document.body.style.overflow = "hidden";
     const practice = qa === "1" || window.location.hash === "#qa";
     if (practice) setPhase("play");
+    restoreWorn();
     void Promise.resolve(useStudio.persist.rehydrate()).finally(() => {
       setClaims(loadClaims());
       const saved = loadTools() as ToolId[];
@@ -142,7 +141,8 @@ function WorldPage() {
           key={difficulty}
           sites={buried}
           claimed={claims}
-          heldUrl={held?.imageUrl}
+          heldUrl={wornGlyph?.imageUrl}
+          worn={worn}
           phase={playing ? "play" : phase === "intro" ? "intro" : "pause"}
           qa={qa === "1"}
           tool={equipped}

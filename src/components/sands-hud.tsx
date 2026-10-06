@@ -6,6 +6,8 @@ import type { BuriedGlyph } from "@/game/field";
 import type { WorldSurvey } from "@/game/field";
 import { mediaUrl, traitLine, type Glyph } from "@/lib/collection";
 import type { ToolId } from "@/game/field";
+import { GlyphAvatar, WearAny } from "@/components/glyph-avatar";
+import { avatarLine } from "@/lib/avatar";
 import { TREASURY, type Difficulty } from "@/lib/treasury";
 import { useWallet } from "@/lib/wallet-store";
 
@@ -148,14 +150,14 @@ export function SandsHud({
 }) {
   const level = COPY[difficulty];
   const glyphs = useWallet((store) => store.glyphs);
-  const heldId = useWallet((store) => store.heldId);
+  const worn = useWallet((store) => store.worn);
   const hold = useWallet((store) => store.hold);
   const status = useWallet((store) => store.status);
   const walletNote = useWallet((store) => store.note);
   const label = useWallet((store) => store.label);
   const connect = useWallet((store) => store.connect);
   const loadExample = useWallet((store) => store.loadExample);
-  const satchel = mergeSatchel(glyphs, claims);
+  const satchel = mergeSatchel(glyphs, claims, worn);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col">
@@ -188,6 +190,7 @@ export function SandsHud({
         </div>
         <div className="pointer-events-none flex items-center gap-2 rounded-control border border-line bg-bg px-3 py-2">
           <Scarab />
+          {worn ? <GlyphAvatar traits={worn.traits} /> : null}
           <span className="font-display text-lg text-gold tabular-nums">
             {found}/{total}
           </span>
@@ -385,7 +388,7 @@ export function SandsHud({
               </button>
             </div>
             <p className="mt-1 text-sm text-muted">
-              {label || "No wallet yet."} Hold a glyph to carry its face. Studio is just for fun.
+              {label || "No wallet yet."} Wear a glyph and you walk as that seal. Studio is just for fun.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
@@ -406,12 +409,19 @@ export function SandsHud({
               </button>
             </div>
             {walletNote ? <p className="mt-2 text-sm text-muted">{walletNote}</p> : null}
+            {worn ? (
+              <div className="mt-3 flex items-center gap-3">
+                <GlyphAvatar traits={worn.traits} hero />
+                <p className="text-sm text-muted">{avatarLine(worn.traits)}</p>
+              </div>
+            ) : null}
+            <WearAny />
             {satchel.length === 0 ? (
               <p className="mt-4 text-sm text-muted">Nothing kept yet. Clear a pit, or load a wallet.</p>
             ) : (
               <ul className="mt-4 grid grid-cols-3 gap-2">
                 {satchel.map((glyph) => {
-                  const active = heldId === glyph.tokenId;
+                  const active = worn?.tokenId === glyph.tokenId;
                   const kept = claims.includes(glyph.tokenId);
                   return (
                     <li key={glyph.tokenId}>
@@ -464,11 +474,12 @@ function Compass({ pose }: { pose: RefObject<Walker> }) {
   );
 }
 
-function mergeSatchel(owned: Glyph[], claims: string[]): Glyph[] {
+function mergeSatchel(owned: Glyph[], claims: string[], worn: Glyph | null): Glyph[] {
   const map = new Map<string, Glyph>();
   for (const glyph of TREASURY) {
     if (claims.includes(glyph.tokenId)) map.set(glyph.tokenId, glyph);
   }
   for (const glyph of owned) map.set(glyph.tokenId, glyph);
+  if (worn) map.set(worn.tokenId, worn);
   return [...map.values()];
 }

@@ -21,6 +21,7 @@ import {
 } from "@/game/field";
 import { mediaUrl } from "@/lib/collection";
 import { scrape, step } from "@/game/sfx";
+import type { AvatarLook } from "@/lib/avatar";
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ export type FieldProps = {
   sites: BuriedGlyph[];
   claimed: string[];
   heldUrl?: string;
+  worn?: AvatarLook | null;
   phase: Phase;
   qa: boolean;
   tool: ToolId;
@@ -747,15 +749,72 @@ function FootDust({ pose }: { pose: RefObject<Walker> }) {
   );
 }
 
+const METAL_COLOR = { gold: GOLD, silver: 0xd8d2c6, iron: 0x8a8074, copper: COPPER } as const;
+const HOUR_COLOR = { day: SUN, morning: 0xf3ead7, evening: DUSK, night: 0x2c3344 } as const;
+
+function useMarkTexture(mark: string) {
+  const [map, setMap] = useState<THREE.CanvasTexture | null>(null);
+  useEffect(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, 256, 256);
+    ctx.fillStyle = "#14110e";
+    ctx.fillRect(28, 28, 200, 200);
+    ctx.fillStyle = "#f3ead7";
+    ctx.font = "128px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(mark || "𓂀", 128, 140);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    setMap(tex);
+    return () => tex.dispose();
+  }, [mark]);
+  return map;
+}
+
+function RankCap({ rank }: { rank: AvatarLook["rank"] }) {
+  if (rank === "work") return null;
+  if (rank === "priest") {
+    return (
+      <mesh position={[0, 2.28, 0]} castShadow>
+        <cylinderGeometry args={[0.05, 0.1, 0.72, 6]} />
+        <meshLambertMaterial color={GOLD} />
+      </mesh>
+    );
+  }
+  if (rank === "noble") {
+    return (
+      <mesh position={[0, 1.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.3, 0.045, 8, 18]} />
+        <meshLambertMaterial color={GOLD} />
+      </mesh>
+    );
+  }
+  const tall = rank === "pharaoh";
+  return (
+    <mesh position={[0, tall ? 2.22 : 2.08, 0]} castShadow>
+      <coneGeometry args={[tall ? 0.3 : 0.16, tall ? 0.52 : 0.28, 4]} />
+      <meshLambertMaterial color={GOLD} />
+    </mesh>
+  );
+}
+
 function Surveyor({
   pose,
   heldUrl,
+  worn,
   sites,
   pits,
   ownedTools,
 }: {
   pose: RefObject<Walker>;
   heldUrl?: string;
+  worn?: AvatarLook | null;
   sites: BuriedGlyph[];
   pits: RefObject<Map<string, Pit>>;
   ownedTools: ToolId[];
@@ -763,6 +822,8 @@ function Surveyor({
   const body = useRef<THREE.Group>(null);
   const last = useRef({ x: SPAWN.x, z: SPAWN.z, step: 0 });
   const heldMap = useGlyphTexture(heldUrl);
+  const markMap = useMarkTexture(worn?.mark ?? "𓂀");
+  const metal = worn ? METAL_COLOR[worn.metal] : LINEN;
   useFrame(() => {
     const here = pose.current;
     if (!body.current) return;
@@ -779,20 +840,35 @@ function Surveyor({
       <group ref={body}>
         <mesh position={[0, 0.85, 0]} castShadow>
           <coneGeometry args={[0.38, 1.45, 10]} />
-          <meshLambertMaterial color={LINEN} />
+          <meshLambertMaterial color={metal} />
         </mesh>
-        <mesh position={[0, 1.72, 0]} castShadow>
-          <sphereGeometry args={[0.2, 12, 12]} />
-          <meshLambertMaterial color={SKIN} />
-        </mesh>
+        {worn ? (
+          <>
+            <mesh position={[0, 1.7, -0.02]}>
+              <circleGeometry args={[0.46, 20]} />
+              <meshBasicMaterial color={HOUR_COLOR[worn.hour]} />
+            </mesh>
+            <mesh position={[0, 1.15, 0.22]}>
+              <planeGeometry args={[0.62, 0.62]} />
+              <meshBasicMaterial map={markMap ?? undefined} toneMapped={false} />
+            </mesh>
+            <RankCap rank={worn.rank} />
+          </>
+        ) : (
+          <mesh position={[0, 1.72, 0]} castShadow>
+            <sphereGeometry args={[0.2, 12, 12]} />
+            <meshLambertMaterial color={SKIN} />
+          </mesh>
+        )}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
           <circleGeometry args={[0.34, 14]} />
           <meshBasicMaterial color={0x3a2a18} transparent opacity={0.28} depthWrite={false} />
         </mesh>
         <mesh position={[0, 1.96, 0]}>
           <cylinderGeometry args={[0.32, 0.32, 0.05, 12]} />
-          <meshLambertMaterial color={LINEN} />
+          <meshLambertMaterial color={worn ? metal : LINEN} />
         </mesh>
+        {worn ? null : (
         <mesh position={[0.28, 1.15, 0.28]} rotation={[0, 0.4, 0]}>
           <boxGeometry args={[0.28, 0.38, 0.04]} />
           <meshStandardMaterial
@@ -802,6 +878,7 @@ function Surveyor({
             metalness={0.15}
           />
         </mesh>
+        )}
       </group>
       {sites.map((site) => (
         <DigSite key={site.tokenId} site={site} pose={pose} pits={pits} />
@@ -817,6 +894,7 @@ function Walk({
   sites,
   claimed,
   heldUrl,
+  worn,
   phase,
   qa,
   tool,
@@ -1097,7 +1175,7 @@ function Walk({
       <Monuments maps={maps} />
       <Motes />
       <FootDust pose={pose} />
-      <Surveyor pose={pose} heldUrl={heldUrl} sites={sites} pits={pits} ownedTools={ownedTools} />
+      <Surveyor pose={pose} heldUrl={heldUrl} worn={worn} sites={sites} pits={pits} ownedTools={ownedTools} />
     </>
   );
 }
