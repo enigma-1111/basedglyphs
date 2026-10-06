@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Glyph Sands">
+  <rect width="32" height="32" rx="7" fill="#14110e"/>
+  <path fill="#d7b07a" d="M0 24c5-5 9.2-3.4 13 .6 3.4-5.2 8-5.8 12.6-1.2C28.2 20.6 30.4 20.2 32 21.6V32H0Z"/>
+  <circle cx="16" cy="13" r="8.4" fill="#c6a15b"/>
+  <circle cx="16" cy="13" r="6.4" fill="#14110e"/>
+  <path fill="#f3ead7" d="M16 9.2c2.9 0 5 1.9 5.8 3.4-.8 1.6-2.9 3.5-5.8 3.5s-5-1.9-5.8-3.5c.8-1.5 2.9-3.4 5.8-3.4z"/>
+  <circle cx="16" cy="12.6" r="1.5" fill="#e07a3a"/>
+</svg>

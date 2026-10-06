@@ -1,0 +1,146 @@
+[
+  {
+    "tokenId": "3333",
+    "name": "Glyph #3333",
+    "imageUrl": "/sample/3333.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/849a916722e74ec818b67092d8d0b6/5d849a916722e74ec818b67092d8d0b6.png",
+    "traits": {
+      "Alchemy": "☽ Silver",
+      "Glyph": "𓆣𓃉",
+      "Hierarchy": "Artisan",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3332",
+    "name": "Glyph #3332",
+    "imageUrl": "/sample/3332.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/1dfd59fe7570a76c75fcc6b0a639de/131dfd59fe7570a76c75fcc6b0a639de.png",
+    "traits": {
+      "Alchemy": "☽ Silver",
+      "Glyph": "𓆸𓃉",
+      "Hierarchy": "Noble 𓃊",
+      "Time": "Ra - Day"
+    }
+  },
+  {
+    "tokenId": "3331",
+    "name": "Glyph #3331",
+    "imageUrl": "/sample/3331.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/2df0fa2fc5739efd7e911c5cd81242/732df0fa2fc5739efd7e911c5cd81242.png",
+    "traits": {
+      "Alchemy": "♀ Copper",
+      "Glyph": "𓁘𓃊",
+      "Hierarchy": "Priest 𓃉",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3330",
+    "name": "Glyph #3330",
+    "imageUrl": "/sample/3330.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/7b1b5732bdf7e66780ab52c9c82db0/da7b1b5732bdf7e66780ab52c9c82db0.png",
+    "traits": {
+      "Alchemy": "☉ Gold",
+      "Glyph": "𓆈𓃉",
+      "Hierarchy": "Artisan",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3329",
+    "name": "Glyph #3329",
+    "imageUrl": "/sample/3329.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/f94a6112fcd6d748a71cef57b019d7/d1f94a6112fcd6d748a71cef57b019d7.png",
+    "traits": {
+      "Alchemy": "☽ Silver",
+      "Glyph": "𓁢𓃉",
+      "Hierarchy": "Noble 𓃊",
+      "Time": "Osiris - Night"
+    }
+  },
+  {
+    "tokenId": "3328",
+    "name": "Glyph #3328",
+    "imageUrl": "/sample/3328.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/d842cc338532281fed0e83761b4363/b6d842cc338532281fed0e83761b4363.png",
+    "traits": {
+      "Alchemy": "♂ Iron",
+      "Glyph": "𓁶",
+      "Hierarchy": "Noble 𓃋",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "3327",
+    "name": "Glyph #3327",
+    "imageUrl": "/sample/3327.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/4e655f539e6abf3e9c1b3b997fd825/a64e655f539e6abf3e9c1b3b997fd825.png",
+    "traits": {
+      "Alchemy": "☉ Gold",
+      "Glyph": "𓁳𓃉",
+      "Hierarchy": "Farmer",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "3326",
+    "name": "Glyph #3326",
+    "imageUrl": "/sample/3326.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/9b8d5aac1ac8c82a8bcba612fb8379/269b8d5aac1ac8c82a8bcba612fb8379.png",
+    "traits": {
+      "Alchemy": "♀ Copper",
+      "Glyph": "𓀬",
+      "Hierarchy": "Noble 𓃋",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3325",
+    "name": "Glyph #3325",
+    "imageUrl": "/sample/3325.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/450eeba8440a4bbc37e9a19188c160/c4450eeba8440a4bbc37e9a19188c160.png",
+    "traits": {
+      "Alchemy": "☉ Gold",
+      "Glyph": "𓁧𓃉",
+      "Hierarchy": "Scribe",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3324",
+    "name": "Glyph #3324",
+    "imageUrl": "/sample/3324.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/f26ba7571f895dd4cef8d28aecd121/51f26ba7571f895dd4cef8d28aecd121.png",
+    "traits": {
+      "Alchemy": "♀ Copper",
+      "Glyph": "𓁈𓃊",
+      "Hierarchy": "Artisan",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "3323",
+    "name": "Glyph #3323",
+    "imageUrl": "/sample/3323.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/c7f4cce77f7041a11a683654820a2e/e4c7f4cce77f7041a11a683654820a2e.png",
+    "traits": {
+      "Alchemy": "♂ Iron",
+      "Glyph": "𓃬",
+      "Hierarchy": "Artisan",
+      "Time": "Osiris - Night"
+    }
+  },
+  {
+    "tokenId": "3322",
+    "name": "Glyph #3322",
+    "imageUrl": "/sample/3322.avif",
+    "remoteUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/1ac9bf39041234c782e7fbc2011f05/8a1ac9bf39041234c782e7fbc2011f05.png",
+    "traits": {
+      "Alchemy": "☉ Gold",
+      "Glyph": "𓆈𓃊",
+      "Hierarchy": "Farmer",
+      "Time": "Horus - Morning"
+    }
+  }
+]

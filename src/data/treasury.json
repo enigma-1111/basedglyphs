@@ -1,0 +1,123 @@
+[
+  {
+    "tokenId": "2767",
+    "name": "Glyph #2767",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/cf9bb9871d93d895ea3567217e29b3/f9cf9bb9871d93d895ea3567217e29b3.png",
+    "traits": {
+      "Alchemy": "\u2609 Gold",
+      "Glyph": "\ud80c\udc5f",
+      "Hierarchy": "Scribe",
+      "Time": "Ra - Day"
+    }
+  },
+  {
+    "tokenId": "68",
+    "name": "Glyph #68",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/dd5e28e1fe559071fb3c649ceceb9d/b3dd5e28e1fe559071fb3c649ceceb9d.png",
+    "traits": {
+      "Alchemy": "\u2640 Copper",
+      "Glyph": "\ud80c\udc56\ud80c\udcc9",
+      "Hierarchy": "Scribe",
+      "Time": "Osiris - Night"
+    }
+  },
+  {
+    "tokenId": "77",
+    "name": "Glyph #77",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/639ce68ac5d4aa6941529469922412/b1639ce68ac5d4aa6941529469922412.png",
+    "traits": {
+      "Alchemy": "\u2642 Iron",
+      "Glyph": "\ud80c\udcd2",
+      "Hierarchy": "Noble \ud80c\udcc9",
+      "Time": "Osiris - Night"
+    }
+  },
+  {
+    "tokenId": "67",
+    "name": "Glyph #67",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/e036f8c7ff6f7edd1f96316ba239cc/50e036f8c7ff6f7edd1f96316ba239cc.png",
+    "traits": {
+      "Alchemy": "\u2640 Copper",
+      "Glyph": "\ud80c\udc4d\ud80c\udcc9",
+      "Hierarchy": "Royal",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "70",
+    "name": "Glyph #70",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/3d2d5ee0c886c09585d39b5d7c3964/6e3d2d5ee0c886c09585d39b5d7c3964.png",
+    "traits": {
+      "Alchemy": "\u2642 Iron",
+      "Glyph": "\ud80c\udd53\ud80c\udcc9",
+      "Hierarchy": "Noble \ud80c\udccc",
+      "Time": "Atum - Evening"
+    }
+  },
+  {
+    "tokenId": "59",
+    "name": "Glyph #59",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/1613aeede9d3bb86b17468989bc51d/351613aeede9d3bb86b17468989bc51d.png",
+    "traits": {
+      "Alchemy": "\u2642 Iron",
+      "Glyph": "\ud80c\udd3f\ud80c\udcc9",
+      "Hierarchy": "Noble \ud80c\udccc",
+      "Time": "Osiris - Night"
+    }
+  },
+  {
+    "tokenId": "66",
+    "name": "Glyph #66",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/23d0bce3af09da873e61bcde318873/d523d0bce3af09da873e61bcde318873.png",
+    "traits": {
+      "Alchemy": "\u2640 Copper",
+      "Glyph": "\ud80c\udc61",
+      "Hierarchy": "Farmer",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "64",
+    "name": "Glyph #64",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/1bbb4b9896b2786b1c12b62322b708/c01bbb4b9896b2786b1c12b62322b708.png",
+    "traits": {
+      "Alchemy": "\u2642 Iron",
+      "Glyph": "\ud80c\udda4\ud80c\udcc9",
+      "Hierarchy": "Noble \ud80c\udccb",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "99",
+    "name": "Glyph #99",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/5bafbf182fc70e9b85ac867a16de95/1b5bafbf182fc70e9b85ac867a16de95.png",
+    "traits": {
+      "Alchemy": "\u2642 Iron",
+      "Glyph": "\ud80c\udd3f\ud80c\udcca",
+      "Hierarchy": "Merchant",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "63",
+    "name": "Glyph #63",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/38cd6c1e497483cd5d83e4a66e02c7/5e38cd6c1e497483cd5d83e4a66e02c7.png",
+    "traits": {
+      "Alchemy": "\u263d Silver",
+      "Glyph": "\ud80c\udd89\ud80c\udcc9",
+      "Hierarchy": "Noble \ud80c\udcc9",
+      "Time": "Horus - Morning"
+    }
+  },
+  {
+    "tokenId": "1",
+    "name": "Glyph #1",
+    "imageUrl": "https://i2c.seadn.io/base/0xafc5a4fb9908d995be8de5e9a22cc7c4dd2c7124/b59aba359b6a626068993ed7b79ac6/f0b59aba359b6a626068993ed7b79ac6.png",
+    "traits": {
+      "Alchemy": "\u2640 Copper",
+      "Glyph": "\ud80c\udc62\ud80c\udcca",
+      "Hierarchy": "Scribe",
+      "Time": "Horus - Morning"
+    }
+  }
+]

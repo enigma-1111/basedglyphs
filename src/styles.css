@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Cinzel", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --color-bg: #14110e;
+  --color-surface: #221c17;
+  --color-ink: #f3ead7;
+  --color-muted: #a89880;
+  --color-faint: #6f6254;
+  --color-line: #3c332a;
+  --color-gold: #c6a15b;
+  --color-gold-ink: #1a140c;
+  --color-sun: #f6c98a;
+  --color-dusk: #e07a3a;
+  --color-soil: #8d5a36;
+  --radius-control: 0.75rem;
+  --radius-card: 1.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    background-image: radial-gradient(
+      ellipse at 50% 120%,
+      color-mix(in oklab, var(--color-gold) 14%, transparent),
+      transparent 46%
+    );
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
+  input[type="range"] {
+    accent-color: var(--color-gold);
+    height: 2.75rem;
+    width: 100%;
+  }
+}
+
+@utility stage-piece {
+  height: min(62dvh, 36rem);
+}
+
+@utility stage-world {
+  height: min(58dvh, 40rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+}
+
+.sands-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.sands-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--color-sun) 0%, var(--color-dusk) 46%, var(--color-soil) 100%);
+}
+
+.sands-canvas {
+  touch-action: none;
+}
+
+.sands-map-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.sands-you svg {
+  filter: drop-shadow(0 0 1px var(--color-bg)) drop-shadow(0 0 1px var(--color-bg));
+}
+
+.sands-stick {
+  pointer-events: auto;
+  position: relative;
+  width: 7.25rem;
+  height: 7.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: color-mix(in oklab, var(--color-bg) 72%, transparent);
+  touch-action: none;
+}
+
+.sands-stick span {
+  position: absolute;
+  left: calc(50% - 1.15rem);
+  top: calc(50% - 1.15rem);
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 999px;
+  background: var(--color-gold);
+}
+
+@media (pointer: fine) and (min-width: 960px) {
+  .sands-touch {
+    display: none;
+  }
+}
