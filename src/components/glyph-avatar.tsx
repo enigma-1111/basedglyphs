@@ -22,6 +22,9 @@ const CAP: Record<Rank, string> = {
   royal: "border-t-2 border-gold",
   priest: "border-t-4 border-ink",
   noble: "border-b-2 border-gold",
+  scribe: "border-t-2 border-ink",
+  farmer: "border-b-2 border-ink",
+  merchant: "border-t-2 border-line",
   work: "",
 };
 

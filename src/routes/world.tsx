@@ -6,7 +6,6 @@ import { buildField, rosterFor, SPAWN, type BuriedGlyph, type ToolId, type Walke
 import { loadClaims, loadTools, saveClaims, saveTools } from "@/lib/hunt";
 import { chime, tick, unlockSound } from "@/game/sfx";
 import { useStudio } from "@/lib/store";
-import { lookOf } from "@/lib/avatar";
 import { type Difficulty } from "@/lib/treasury";
 import { useWallet, restoreWorn } from "@/lib/wallet-store";
 
@@ -40,7 +39,6 @@ function WorldPage() {
   const brushHeld = useRef(false);
   const stick = useRef({ forward: 0, steer: 0 });
   const wornGlyph = useWallet((store) => store.worn);
-  const worn = wornGlyph ? lookOf(wornGlyph.traits) : null;
   const buried = useMemo(() => buildField(rosterFor(difficulty)).glyphs, [difficulty]);
   const found = claims ? buried.filter((glyph) => claims.includes(glyph.tokenId)).length : 0;
   const ownedTools: ToolId[] = ["hands", ...(pouch ?? [])];
@@ -141,8 +139,7 @@ function WorldPage() {
           key={difficulty}
           sites={buried}
           claimed={claims}
-          heldUrl={wornGlyph?.imageUrl}
-          worn={worn}
+          traits={wornGlyph?.traits}
           phase={playing ? "play" : phase === "intro" ? "intro" : "pause"}
           qa={qa === "1"}
           tool={equipped}

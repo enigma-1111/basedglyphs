@@ -21,7 +21,7 @@ import {
 } from "@/game/field";
 import { mediaUrl } from "@/lib/collection";
 import { scrape, step } from "@/game/sfx";
-import type { AvatarLook } from "@/lib/avatar";
+import { GlyphStick } from "@/game/stick-figure";
 
 declare global {
   interface Window {
@@ -42,8 +42,7 @@ type Phase = "intro" | "play" | "pause";
 export type FieldProps = {
   sites: BuriedGlyph[];
   claimed: string[];
-  heldUrl?: string;
-  worn?: AvatarLook | null;
+  traits?: Record<string, string> | null;
   phase: Phase;
   qa: boolean;
   tool: ToolId;
@@ -160,150 +159,6 @@ function useGlyphTexture(url?: string) {
   return map;
 }
 
-const reliefCache = new Map<string, { color: THREE.Texture | null; normal: THREE.Texture | null }>();
-const RELIEF = new THREE.Vector2(0.65, 0.65);
-
-function paintOf(image: CanvasImageSource): THREE.Texture | null {
-  const size = 512;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.drawImage(image, 0, 0, size, size);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tex.needsUpdate = true;
-  return tex;
-}
-
-function useGlyphRelief(url?: string) {
-  const [maps, setMaps] = useState<{ color: THREE.Texture | null; normal: THREE.Texture | null }>({
-    color: null,
-    normal: null,
-  });
-  useEffect(() => {
-    if (!url) {
-      setMaps({ color: null, normal: null });
-      return;
-    }
-    const cached = reliefCache.get(url);
-    if (cached) {
-      setMaps(cached);
-      return;
-    }
-    let live = true;
-    const img = new Image();
-    img.onload = () => {
-      const pack = { color: paintOf(img), normal: reliefOf(img) };
-      reliefCache.set(url, pack);
-      if (live) setMaps(pack);
-    };
-    img.src = mediaUrl(url) ?? url;
-    return () => {
-      live = false;
-    };
-  }, [url]);
-  return maps;
-}
-function reliefOf(image: CanvasImageSource): THREE.Texture | null {
-  try {
-    const size = 192;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(image, 0, 0, size, size);
-    const src = ctx.getImageData(0, 0, size, size);
-    const out = ctx.createImageData(size, size);
-    const data = src.data;
-    const lum = (x: number, y: number) => {
-      const i = (y * size + x) * 4;
-      return data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    };
-    for (let y = 0; y < size; y += 1) {
-      const ym = y > 0 ? y - 1 : y;
-      const yp = y < size - 1 ? y + 1 : y;
-      for (let x = 0; x < size; x += 1) {
-        const xm = x > 0 ? x - 1 : x;
-        const xp = x < size - 1 ? x + 1 : x;
-        const dx = (lum(xp, y) - lum(xm, y)) * 3.2;
-        const dy = (lum(x, yp) - lum(x, ym)) * 3.2;
-        const nx = -dx;
-        const ny = -dy;
-        const nz = 42;
-        const len = Math.hypot(nx, ny, nz) || 1;
-        const o = (y * size + x) * 4;
-        out.data[o] = (nx / len) * 127 + 128;
-        out.data[o + 1] = (ny / len) * 127 + 128;
-        out.data[o + 2] = (nz / len) * 127 + 128;
-        out.data[o + 3] = 255;
-      }
-    }
-    const plate = document.createElement("canvas");
-    plate.width = size;
-    plate.height = size;
-    plate.getContext("2d")?.putImageData(out, 0, 0);
-    const tex = new THREE.CanvasTexture(plate);
-    tex.colorSpace = THREE.NoColorSpace;
-    return tex;
-  } catch {
-    return null;
-  }
-}
-
-function GlyphFace({
-  color,
-  normal,
-  position,
-  rotation,
-}: {
-  color: THREE.Texture | null;
-  normal: THREE.Texture | null;
-  position: [number, number, number];
-  rotation?: [number, number, number];
-}) {
-  const mat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.55,
-        metalness: 0.04,
-        toneMapped: true,
-      }),
-    [],
-  );
-  useLayoutEffect(() => {
-    mat.map = color;
-    mat.emissiveMap = color;
-    mat.emissive = new THREE.Color(color ? 0xffffff : 0x000000);
-    mat.emissiveIntensity = color ? 0.55 : 0;
-    mat.normalMap = normal;
-    mat.normalScale.copy(RELIEF);
-    if (color) color.needsUpdate = true;
-    mat.needsUpdate = true;
-  }, [color, normal, mat]);
-  return (
-    <mesh position={position} rotation={rotation} material={mat}>
-      <planeGeometry args={[1.36, 1.36]} />
-    </mesh>
-  );
-}
-
-function GlyphBody({ color, normal }: { color: THREE.Texture | null; normal: THREE.Texture | null }) {
-  return (
-    <group position={[0, 0.9, 0]}>
-      <mesh castShadow>
-        <boxGeometry args={[1.5, 1.5, 0.42]} />
-        <meshStandardMaterial color={0x3a2c1c} roughness={0.38} metalness={0.62} />
-      </mesh>
-      <GlyphFace color={color} normal={normal} position={[0, 0, 0.216]} />
-      <GlyphFace color={color} normal={normal} position={[0, 0, -0.216]} rotation={[0, Math.PI, 0]} />
-    </group>
-  );
-}
 
 function Dunes({ maps }: { maps: TerrainMaps | null }) {
   const geo = useMemo(() => {
@@ -894,26 +749,21 @@ function FootDust({ pose }: { pose: RefObject<Walker> }) {
   );
 }
 
-const DEFAULT_SEAL = "/glyphs/surveyor.png";
-
 function Surveyor({
   pose,
-  heldUrl,
-  worn,
+  traits,
   sites,
   pits,
   ownedTools,
 }: {
   pose: RefObject<Walker>;
-  heldUrl?: string;
-  worn?: AvatarLook | null;
+  traits?: Record<string, string> | null;
   sites: BuriedGlyph[];
   pits: RefObject<Map<string, Pit>>;
   ownedTools: ToolId[];
 }) {
   const body = useRef<THREE.Group>(null);
   const last = useRef({ x: SPAWN.x, z: SPAWN.z, step: 0 });
-  const relief = useGlyphRelief(heldUrl || DEFAULT_SEAL);
   useFrame(() => {
     const here = pose.current;
     if (!body.current) return;
@@ -924,14 +774,13 @@ function Surveyor({
     const hop = Math.sin(last.current.step) * Math.min(0.06, moved * 7);
     body.current.position.set(here.x, heightAt(here.x, here.z) + hop, here.z);
     body.current.rotation.y = here.yaw + Math.PI;
-    body.current.rotation.x = 0.42;
     body.current.rotation.z = Math.sin(last.current.step) * 0.04;
   });
   return (
     <>
       <group ref={body}>
-        <GlyphBody color={relief.color} normal={relief.normal} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+        <GlyphStick traits={traits} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <circleGeometry args={[0.42, 16]} />
           <meshBasicMaterial color={0x3a2a18} transparent opacity={0.28} depthWrite={false} />
         </mesh>
@@ -949,8 +798,7 @@ function Surveyor({
 function Walk({
   sites,
   claimed,
-  heldUrl,
-  worn,
+  traits,
   phase,
   qa,
   tool,
@@ -1231,7 +1079,7 @@ function Walk({
       <Monuments maps={maps} />
       <Motes />
       <FootDust pose={pose} />
-      <Surveyor pose={pose} heldUrl={heldUrl} worn={worn} sites={sites} pits={pits} ownedTools={ownedTools} />
+      <Surveyor pose={pose} traits={traits} sites={sites} pits={pits} ownedTools={ownedTools} />
     </>
   );
 }

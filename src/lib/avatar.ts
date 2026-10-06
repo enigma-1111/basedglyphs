@@ -1,6 +1,6 @@
 export type Metal = "gold" | "silver" | "iron" | "copper";
 export type Hour = "day" | "morning" | "evening" | "night";
-export type Rank = "pharaoh" | "royal" | "priest" | "noble" | "work";
+export type Rank = "pharaoh" | "royal" | "priest" | "noble" | "scribe" | "farmer" | "merchant" | "work";
 
 export type AvatarLook = {
   mark: string;
@@ -41,6 +41,12 @@ export function lookOf(traits: Record<string, string>): AvatarLook {
         ? "priest"
         : station.startsWith("noble")
           ? "noble"
-          : "work";
+          : station.startsWith("scribe")
+            ? "scribe"
+            : station.startsWith("farmer")
+              ? "farmer"
+              : station.startsWith("merchant")
+                ? "merchant"
+                : "work";
   return { mark: traits.Glyph || "𓂀", metal, hour, rank };
 }
