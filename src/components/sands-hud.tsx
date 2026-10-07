@@ -232,24 +232,26 @@ export function SandsHud({
       ) : null}
 
       <div className="mt-auto px-3 pb-3">
-        <div className="mb-2 flex flex-wrap justify-center gap-2">
-          {ownedTools.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={
-                "pointer-events-auto min-h-11 rounded-control border px-3 text-sm " +
-                (tool === id ? "border-gold bg-gold text-gold-ink" : "border-line bg-bg text-ink")
-              }
-              onClick={() => onEquip(id)}
-            >
-              {TOOL_LABEL[id]}
-            </button>
-          ))}
-        </div>
-        <p className="mb-1 text-center text-xs tracking-wide text-ink">{VERB[tool]}</p>
-        <div className="mx-auto mb-3 h-2 w-40 overflow-hidden rounded-full bg-bg">
-          <div ref={brushRef} className="h-full origin-left bg-gold" style={{ transform: "scaleX(0)" }} />
+        <div className="mx-auto mb-3 max-w-md rounded-card border border-line bg-bg/90 px-3 py-2">
+          <div className="flex flex-wrap justify-center gap-2">
+            {ownedTools.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={
+                  "pointer-events-auto min-h-11 rounded-control border px-3 text-sm " +
+                  (tool === id ? "border-gold bg-gold text-gold-ink" : "border-line bg-bg text-ink")
+                }
+                onClick={() => onEquip(id)}
+              >
+                {TOOL_LABEL[id]}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-xs tracking-wide text-muted">{VERB[tool]}</p>
+          <div className="mx-auto mt-1 h-1.5 w-full max-w-48 overflow-hidden rounded-full bg-surface">
+            <div ref={brushRef} className="h-full origin-left bg-gold" style={{ transform: "scaleX(0)" }} />
+          </div>
         </div>
         <div className="flex items-end justify-between gap-3">
           <Stick stick={stick} />

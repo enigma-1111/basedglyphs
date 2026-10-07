@@ -368,6 +368,16 @@ export function GlyphStick({ traits }: { traits?: Record<string, string> | null 
           <torusGeometry args={[0.22, 0.03, 6, 16]} />
         </mesh>
       ) : null}
+      {kind === "knife" || kind === "person" || kind === "seated" || kind === "mother" || kind === "ram" ? (
+        <mesh position={[0.02, 0.95, 0]} material={mat} castShadow>
+          <cylinderGeometry args={[0.11, 0.16, 0.5, 7]} />
+        </mesh>
+      ) : null}
+      {kind === "bull" || kind === "beast" || kind === "jackal" ? (
+        <mesh position={[-0.05, 0.78, 0]} rotation={[0, 0, Math.PI / 2]} material={mat} castShadow>
+          <cylinderGeometry args={[0.1, 0.13, 0.7, 6]} />
+        </mesh>
+      ) : null}
       <RankMark rank={look.rank} mat={mat} />
       <HourMark hour={look.hour} mat={mat} />
     </group>

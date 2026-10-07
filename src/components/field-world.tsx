@@ -346,6 +346,37 @@ function Palm({ x, z }: { x: number; z: number }) {
   );
 }
 
+function SteppedPyramid({
+  radius,
+  height,
+  maps,
+}: {
+  radius: number;
+  height: number;
+  maps: TerrainMaps | null;
+}) {
+  const courses = 6;
+  return (
+    <group>
+      {Array.from({ length: courses }, (_, course) => {
+        const rise = course / courses;
+        const width = radius * 2 * (1 - rise * 0.78);
+        const courseHeight = height / courses;
+        return (
+          <mesh key={course} position={[0, courseHeight * course + courseHeight / 2, 0]}>
+            <boxGeometry args={[width, courseHeight * 0.9, width]} />
+            <Rock maps={maps} />
+          </mesh>
+        );
+      })}
+      <mesh position={[0, height + 0.12, 0]}>
+        <boxGeometry args={[radius * 0.22, 0.28, radius * 0.22]} />
+        <meshLambertMaterial color={GOLD} />
+      </mesh>
+    </group>
+  );
+}
+
 function Monuments({ maps }: { maps: TerrainMaps | null }) {
   const root = useRef<THREE.Group>(null);
   useLayoutEffect(() => {
@@ -366,15 +397,8 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
       {PYRAMIDS.map((pyramid) => {
         const y = heightAt(pyramid.x, pyramid.z);
         return (
-          <group key={`${pyramid.x}-${pyramid.z}`} position={[pyramid.x, y - 0.15, pyramid.z]} rotation={[0, Math.PI / 4, 0]}>
-            <mesh position={[0, pyramid.height / 2, 0]}>
-              <coneGeometry args={[pyramid.radius, pyramid.height, 4]} />
-              <Rock maps={maps} />
-            </mesh>
-            <mesh position={[0, pyramid.height - 0.35, 0]}>
-              <coneGeometry args={[pyramid.radius * 0.16, 0.7, 4]} />
-              <meshLambertMaterial color={GOLD} />
-            </mesh>
+          <group key={`${pyramid.x}-${pyramid.z}`} position={[pyramid.x, y - 0.2, pyramid.z]}>
+            <SteppedPyramid radius={pyramid.radius} height={pyramid.height} maps={maps} />
           </group>
         );
       })}
@@ -395,18 +419,33 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
           </group>
         );
       })}
+      <mesh position={[74, heightAt(74, 57) + 0.03, 57]} rotation={[-Math.PI / 2, 0, 0.35]}>
+        <boxGeometry args={[12, 6.5, 0.08]} />
+        <Rock maps={maps} />
+      </mesh>
       {COLUMNS.map(([x, z]) => {
         const y = heightAt(x, z);
         return (
-          <group key={`${x}-${z}`} position={[x, y, z]}>
-            <mesh position={[0, 1.5, 0]}>
-              <cylinderGeometry args={[0.22, 0.28, 3, 8]} />
-              <Rock maps={maps} />
-            </mesh>
-            <mesh position={[0, 3.05, 0]}>
-              <cylinderGeometry args={[0.32, 0.32, 0.12, 8]} />
-              <Rock maps={maps} />
-            </mesh>
+          <group key={`${x}-${z}`}>
+            {[
+              [x, z],
+              [x - 1.3, z - 2.6],
+            ].map(([cx, cz], row) => (
+              <group key={row} position={[cx, heightAt(cx, cz) || y, cz]}>
+                <mesh position={[0, 0.18, 0]}>
+                  <cylinderGeometry args={[0.38, 0.42, 0.36, 8]} />
+                  <Rock maps={maps} />
+                </mesh>
+                <mesh position={[0, 1.7, 0]}>
+                  <cylinderGeometry args={[0.22, 0.28, 2.5, 10]} />
+                  <Rock maps={maps} />
+                </mesh>
+                <mesh position={[0, 3.05, 0]}>
+                  <cylinderGeometry args={[0.36, 0.3, 0.22, 8]} />
+                  <Rock maps={maps} />
+                </mesh>
+              </group>
+            ))}
           </group>
         );
       })}
@@ -537,6 +576,8 @@ function DigSite({
   const tablet = useRef<THREE.Group>(null);
   const grains = useRef<THREE.Group>(null);
   const hole = useRef<THREE.Mesh>(null);
+  const trench = useRef<THREE.Group>(null);
+  const floor = useRef<THREE.Mesh>(null);
   useFrame(() => {
     const pit = pits.current.get(site.tokenId);
     const layer = pit?.layer ?? 0;
@@ -558,6 +599,19 @@ function DigSite({
       const scale = rise > 0 ? 1 : Math.max(0.2, layer > 0 ? 0.9 : amt);
       hole.current.scale.set(scale, scale, 1);
     }
+    if (trench.current) {
+      const dug = rise > 0 ? site.layers.length : layer + amt;
+      const open = dug > 0.08;
+      trench.current.visible = open;
+      const spread = 0.85 + Math.min(1, dug) * 0.35;
+      trench.current.position.y = 0.05;
+      trench.current.scale.set(spread, 1, spread);
+      if (floor.current) {
+        const mat = floor.current.material as THREE.MeshLambertMaterial;
+        const name = site.layers[Math.min(layer, site.layers.length - 1)];
+        mat.color.setHex(name === "sand" ? SOIL : name === "pot" ? POT : name === "rubble" ? STONE : EARTH);
+      }
+    }
     if (tablet.current) {
       tablet.current.visible = rise > 0;
       tablet.current.position.y = rise * 1.05;
@@ -576,10 +630,38 @@ function DigSite({
   });
   return (
     <group position={[site.x, y, site.z]}>
-      <mesh ref={hole} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} visible={false}>
-        <circleGeometry args={[0.72, 18]} />
-        <meshLambertMaterial color={EARTH} />
+      <mesh ref={hole} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} visible={false}>
+        <ringGeometry args={[0.7, 0.86, 4]} />
+        <meshLambertMaterial color={SAND} />
       </mesh>
+      <group ref={trench} visible={false}>
+        <mesh ref={floor} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+          <planeGeometry args={[1.35, 1.35]} />
+          <meshLambertMaterial color={EARTH} />
+        </mesh>
+        {(
+          [
+            [0, 0.1, 0.72],
+            [0, 0.1, -0.72],
+          ] as const
+        ).map((pos, index) => (
+          <mesh key={`ns-${index}`} position={pos}>
+            <boxGeometry args={[1.5, 0.16, 0.08]} />
+            <meshLambertMaterial color={EARTH} />
+          </mesh>
+        ))}
+        {(
+          [
+            [0.72, 0.1, 0],
+            [-0.72, 0.1, 0],
+          ] as const
+        ).map((pos, index) => (
+          <mesh key={`ew-${index}`} position={pos}>
+            <boxGeometry args={[0.08, 0.16, 1.35]} />
+            <meshLambertMaterial color={EARTH} />
+          </mesh>
+        ))}
+      </group>
       {site.layers.map((material, index) => (
         <group
           key={`${material}-${index}`}
@@ -968,7 +1050,7 @@ function Walk({
     look.current.set(nx + fx * 2.2, y + 1.28, nz + fz * 2.2);
     camera.lookAt(look.current);
     if (sun.current) {
-      sun.current.position.set(nx - 16, y + 26, nz + 18);
+      sun.current.position.set(nx - 28, y + 14, nz + 8);
       sun.current.target.position.set(nx, y, nz);
       sun.current.target.updateMatrixWorld();
     }
