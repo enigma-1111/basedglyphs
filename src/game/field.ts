@@ -1,7 +1,7 @@
 import { traitLine, type Glyph } from "@/lib/collection";
 import { treasuryFor, type Difficulty, type GlyphTier } from "@/lib/treasury";
 
-export const SPAN = 96;
+export const SPAN = 304;
 
 export const SPAWN = { x: 48, z: 78, yaw: 0 };
 
@@ -53,6 +53,7 @@ export const PYRAMIDS: Pyramid[] = [
   { x: 48, z: 14, radius: 7.6, height: 11 },
   { x: 30, z: 20, radius: 4.6, height: 6.2 },
   { x: 67, z: 18, radius: 5.2, height: 7.4 },
+  { x: 168, z: 42, radius: 12, height: 16 },
 ];
 
 export const PLACES: Landmark[] = [
@@ -111,6 +112,22 @@ export const PLACES: Landmark[] = [
     blurb: "A small stand of palms west of camp.",
     x: 22,
     z: 70,
+  },
+  {
+    id: "quarry",
+    kind: "ruin",
+    name: "Quarry",
+    blurb: "Open trenches east of camp. Medium starts here.",
+    x: 206,
+    z: 200,
+  },
+  {
+    id: "night-house",
+    kind: "pyramid",
+    name: "Night house",
+    blurb: "A tall pyramid on the north sand. Hard starts on its road.",
+    x: 168,
+    z: 42,
   },
 ];
 
@@ -179,6 +196,18 @@ function layersFor(index: number): DigMaterial[] {
   return index % 2 === 0 ? ["sand", "earth", "rubble"] : ["sand", "pot", "rubble"];
 }
 
+export function spawnFor(difficulty: Difficulty): { x: number; z: number; yaw: number } {
+  if (difficulty === "medium") return { x: 206, z: 228, yaw: 0 };
+  if (difficulty === "hard") return { x: 168, z: 78, yaw: 0 };
+  return { x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw };
+}
+
+const PADS = [
+  { x: 48, z: 78 },
+  { x: 206, z: 228 },
+  { x: 168, z: 78 },
+];
+
 export function rosterFor(difficulty: Difficulty): Glyph[] {
   const cap = difficulty === "easy" ? 4 : difficulty === "medium" ? 8 : 12;
   return treasuryFor("hard").slice(0, cap);
@@ -190,17 +219,19 @@ export function heightAt(x: number, z: number): number {
     Math.sin(x * 0.085) * 0.7 +
     Math.cos(z * 0.07 + 1.3) * 0.55 +
     Math.sin((x + z) * 0.04) * 0.35;
-  const north = Math.max(0, (52 - z) / 52);
+  const north = Math.max(0, (80 - z) / 80);
   h += north * north * 1.1;
-  if (x < 26) {
-    const bank = Math.min(1, (26 - x) / 12);
-    const floor = x < 13 ? 0.18 : 0.42;
+  if (x < 36) {
+    const bank = Math.min(1, (36 - x) / 16);
+    const floor = x < 16 ? 0.18 : 0.42;
     h = h * (1 - bank * 0.85) + floor * bank * 0.85;
   }
-  const camp = Math.hypot(x - SPAWN.x, z - SPAWN.z);
-  if (camp < 6) {
-    const t = camp / 6;
-    h = h * t + 0.9 * (1 - t);
+  for (const pad of PADS) {
+    const camp = Math.hypot(x - pad.x, z - pad.z);
+    if (camp < 7) {
+      const t = camp / 7;
+      h = h * t + 0.9 * (1 - t);
+    }
   }
   return h;
 }
@@ -222,13 +253,13 @@ function shadeRelief(ctx: CanvasRenderingContext2D, size: number) {
       let r: number;
       let gv: number;
       let b: number;
-      if (x < 13) {
+      if (x < 16) {
         const shimmer = 0.9 + Math.sin(z * 0.35 + x) * 0.08;
         r = 18 * shimmer;
         gv = 78 * shimmer;
         b = 92 * shimmer;
-      } else if (x < 24) {
-        const bank = (x - 13) / 11;
+      } else if (x < 36) {
+        const bank = (x - 16) / 20;
         r = 64 + bank * 30 + h * 6;
         gv = 46 + bank * 14;
         b = 24 + bank * 8;
@@ -278,12 +309,46 @@ export function nearestPlace(x: number, z: number): Landmark {
   return best;
 }
 
-export function buildField(glyphs: Glyph[]): { glyphs: BuriedGlyph[]; spawn: typeof SPAWN } {
+const SCENES: Record<Difficulty, [number, number][]> = {
+  easy: [
+    [40, 72],
+    [56, 70],
+    [30, 68],
+    [44, 64],
+  ],
+  medium: [
+    [198, 210],
+    [214, 206],
+    [188, 198],
+    [206, 190],
+    [220, 188],
+    [176, 184],
+    [196, 176],
+    [230, 200],
+  ],
+  hard: [
+    [160, 64],
+    [176, 62],
+    [150, 56],
+    [184, 54],
+    [156, 48],
+    [174, 46],
+    [190, 58],
+    [148, 68],
+    [200, 66],
+    [164, 72],
+    [180, 70],
+    [192, 48],
+  ],
+};
+
+export function buildField(glyphs: Glyph[], difficulty: Difficulty = "easy"): { glyphs: BuriedGlyph[]; spawn: typeof SPAWN } {
+  const spots = SCENES[difficulty];
   return {
-    spawn: SPAWN,
-    glyphs: glyphs.slice(0, DIG_SPOTS.length).map((glyph, index) => {
-      const spot = DIG_SPOTS[index] ?? [SPAWN.x, SPAWN.z - 6];
-      const tier: GlyphTier = index < 4 ? "easy" : index < 8 ? "medium" : "hard";
+    spawn: spawnFor(difficulty),
+    glyphs: glyphs.slice(0, spots.length).map((glyph, index) => {
+      const spot = spots[index] ?? [SPAWN.x, SPAWN.z - 6];
+      const tier: GlyphTier = difficulty === "easy" ? "easy" : difficulty === "medium" ? "medium" : "hard";
       return {
         tokenId: glyph.tokenId,
         name: glyph.name,
@@ -292,7 +357,7 @@ export function buildField(glyphs: Glyph[]): { glyphs: BuriedGlyph[]; spawn: typ
         tier,
         x: spot[0],
         z: spot[1],
-        layers: layersFor(index),
+        layers: layersFor(difficulty === "easy" ? index : difficulty === "medium" ? index + 4 : index + 8),
       };
     }),
   };
@@ -307,8 +372,8 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
   if (!ctx) return { mapUrl: "", glyphs: [], spawn: { x: SPAWN.x, z: SPAWN.z } };
   const plot = (x: number, z: number) => ({ px: (x / SPAN) * size, py: (z / SPAN) * size });
   shadeRelief(ctx, size);
-  const river = (13 / SPAN) * size;
-  const field = (24 / SPAN) * size;
+  const river = (16 / SPAN) * size;
+  const field = (36 / SPAN) * size;
   ctx.strokeStyle = "rgba(28, 18, 10, 0.22)";
   ctx.lineWidth = 1;
   for (let z = 0; z < SPAN; z += 2.4) {
@@ -341,6 +406,12 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
   const roadLeft = plot(46.9, 22);
   const roadRight = plot(49.1, 80);
   ctx.fillRect(roadLeft.px, roadLeft.py, roadRight.px - roadLeft.px, roadRight.py - roadLeft.py);
+  const eastA = plot(52, 68.8);
+  const eastB = plot(206, 71.2);
+  ctx.fillRect(eastA.px, eastA.py, eastB.px - eastA.px, eastB.py - eastA.py);
+  const northA = plot(204.8, 70);
+  const northB = plot(207.2, 226);
+  ctx.fillRect(northA.px, northA.py, northB.px - northA.px, northB.py - northA.py);
   ctx.fillStyle = "#d7c4a2";
   for (const [x, z] of [
     [43.4, 73.5],
@@ -372,6 +443,8 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
   const labels: [string, number, number][] = [
     ["Camp", 48, 78],
     ["Pyramid", 48, 14],
+    ["Quarry", 206, 200],
+    ["Night", 168, 42],
     ["Basin", 28, 58],
     ["West", 18, 44],
     ["East", 78, 42],

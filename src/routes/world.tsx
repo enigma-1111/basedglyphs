@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SandsHost } from "@/components/sands-host";
 import { SandsHud } from "@/components/sands-hud";
-import { buildField, rosterFor, SPAWN, type BuriedGlyph, type ToolId, type Walker, type WorldSurvey } from "@/game/field";
+import { buildField, rosterFor, spawnFor, type BuriedGlyph, type ToolId, type Walker, type WorldSurvey } from "@/game/field";
 import { loadClaims, loadTools, saveClaims, saveTools } from "@/lib/hunt";
 import { chime, tick, unlockSound } from "@/game/sfx";
 import { useStudio } from "@/lib/store";
@@ -34,16 +34,20 @@ function WorldPage() {
   const [guide, setGuide] = useState(false);
   const [survey, setSurvey] = useState<WorldSurvey | null>(null);
   const [complete, setComplete] = useState(false);
-  const pose = useRef<Walker>({ x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw });
+  const pose = useRef<Walker>(spawnFor(difficulty));
   const brushRef = useRef<HTMLDivElement>(null);
   const brushHeld = useRef(false);
   const stick = useRef({ forward: 0, steer: 0 });
   const wornGlyph = useWallet((store) => store.worn);
-  const buried = useMemo(() => buildField(rosterFor(difficulty)).glyphs, [difficulty]);
+  const buried = useMemo(() => buildField(rosterFor(difficulty), difficulty).glyphs, [difficulty]);
   const found = claims ? buried.filter((glyph) => claims.includes(glyph.tokenId)).length : 0;
   const ownedTools: ToolId[] = ["hands", ...(pouch ?? [])];
 
   useEffect(() => {
+    const next = spawnFor(difficulty);
+    pose.current.x = next.x;
+    pose.current.z = next.z;
+    pose.current.yaw = next.yaw;
     setSurvey(null);
     setMapOpen(false);
     setModal(null);
@@ -148,6 +152,7 @@ function WorldPage() {
           brushHeld={brushHeld}
           stick={stick}
           pose={pose}
+          difficulty={difficulty}
           onSurvey={setSurvey}
           onReveal={keep}
           onTool={setOffer}

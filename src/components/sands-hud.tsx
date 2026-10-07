@@ -13,16 +13,16 @@ import { useWallet } from "@/lib/wallet-store";
 
 const COPY: Record<Difficulty, { title: string; body: string }> = {
   easy: {
-    title: "Loose sand",
-    body: "Four seals under loose sand. Your hands can shift it. A brush, if you find one, is faster.",
+    title: "Camp street",
+    body: "A short road from the stalls to the pyramid door. Four seals under loose sand. Your hands can shift it.",
   },
   medium: {
-    title: "Earth and pots",
-    body: "Eight pits. Sand, then packed earth or a clay pot. The trowel is the tool that cuts those.",
+    title: "The quarry",
+    body: "You start east of camp, among open trenches. Sand, then packed earth or a clay pot. The trowel cuts those.",
   },
   hard: {
-    title: "Fallen stone",
-    body: "Deeper pits. The last layer is rubble. Only the mallet shifts it. Nothing on the map marks a seal.",
+    title: "Night house",
+    body: "You start on the dark road south of the tall pyramid. The last layer is rubble. Only the mallet shifts it.",
   },
 };
 

@@ -12,6 +12,7 @@ import {
   PYRAMIDS,
   SPAN,
   SPAWN,
+  spawnFor,
   TOOL_PICKUPS,
   COLUMNS,
   type BuriedGlyph,
@@ -55,6 +56,7 @@ export type FieldProps = {
   onReveal: (glyph: BuriedGlyph) => void;
   onTool: (id: ToolId | null) => void;
   onNote: (text: string) => void;
+  difficulty?: "easy" | "medium" | "hard";
 };
 
 const SAND = 0xe4c48a;
@@ -164,7 +166,7 @@ function useGlyphTexture(url?: string) {
 
 function Dunes({ maps }: { maps: TerrainMaps | null }) {
   const geo = useMemo(() => {
-    const geometry = new THREE.PlaneGeometry(SPAN, SPAN, 72, 72);
+    const geometry = new THREE.PlaneGeometry(SPAN, SPAN, 96, 96);
     geometry.rotateX(-Math.PI / 2);
     const pos = geometry.attributes.position;
     for (let i = 0; i < pos.count; i += 1) {
@@ -189,7 +191,7 @@ function Dunes({ maps }: { maps: TerrainMaps | null }) {
         vertexShader:
           "varying vec3 vWorld; varying vec3 vNormal; varying float vH; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWorld = w.xyz; vH = position.y; vNormal = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }",
         fragmentShader:
-          "varying vec3 vWorld; varying vec3 vNormal; varying float vH; uniform sampler2D sandMap; uniform sampler2D soilMap; uniform sampler2D waterMap; uniform float ready; uniform float time; uniform vec3 sunDir; void main(){ vec3 sand = vec3(0.82,0.66,0.45); vec3 soil = vec3(0.36,0.26,0.15); vec3 water = vec3(0.14,0.36,0.4); if (ready > 0.5) { vec2 uv = vWorld.xz * 0.28; sand = texture2D(sandMap, uv).rgb; soil = texture2D(soilMap, uv * 1.15).rgb; water = texture2D(waterMap, uv * 0.72 + vec2(time * 0.018, time * 0.006)).rgb; } float river = smoothstep(14.4, 11.4, vWorld.x); float field = smoothstep(26.0, 15.2, vWorld.x) * (1.0 - river); float lift = clamp((vH - 0.3) / 2.4, 0.0, 1.0); vec3 col = mix(sand * (0.9 + lift * 0.14), soil, field); col = mix(col, water, river); float ndl = clamp(dot(normalize(vNormal), normalize(sunDir)), 0.0, 1.0); col *= 0.62 + ndl * 0.62; float glint = pow(max(0.0, dot(reflect(-normalize(sunDir), normalize(vNormal)), vec3(0.15, 0.35, 0.85))), 24.0); col += vec3(0.9, 0.82, 0.55) * glint * river * 0.22; gl_FragColor = vec4(col, 1.0); }",
+          "varying vec3 vWorld; varying vec3 vNormal; varying float vH; uniform sampler2D sandMap; uniform sampler2D soilMap; uniform sampler2D waterMap; uniform float ready; uniform float time; uniform vec3 sunDir; void main(){ vec3 sand = vec3(0.82,0.66,0.45); vec3 soil = vec3(0.36,0.26,0.15); vec3 water = vec3(0.14,0.36,0.4); if (ready > 0.5) { vec2 uv = vWorld.xz * 0.28; sand = texture2D(sandMap, uv).rgb; soil = texture2D(soilMap, uv * 1.15).rgb; water = texture2D(waterMap, uv * 0.72 + vec2(time * 0.018, time * 0.006)).rgb; } float river = smoothstep(20.0, 14.0, vWorld.x); float field = smoothstep(36.0, 20.0, vWorld.x) * (1.0 - river); float lift = clamp((vH - 0.3) / 2.4, 0.0, 1.0); vec3 col = mix(sand * (0.9 + lift * 0.14), soil, field); col = mix(col, water, river); float ndl = clamp(dot(normalize(vNormal), normalize(sunDir)), 0.0, 1.0); col *= 0.62 + ndl * 0.62; float glint = pow(max(0.0, dot(reflect(-normalize(sunDir), normalize(vNormal)), vec3(0.15, 0.35, 0.85))), 24.0); col += vec3(0.9, 0.82, 0.55) * glint * river * 0.22; gl_FragColor = vec4(col, 1.0); }",
       }),
     [],
   );
@@ -213,27 +215,32 @@ function Dunes({ maps }: { maps: TerrainMaps | null }) {
   return <mesh geometry={geo} material={mat} position={[SPAN / 2, 0, SPAN / 2]} receiveShadow />;
 }
 
-function Sky() {
-  const mat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        depthWrite: false,
-        uniforms: {
-          top: { value: new THREE.Color(SUN) },
-          bottom: { value: new THREE.Color(DUSK) },
-        },
-        vertexShader:
-          "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-        fragmentShader:
-          "varying vec3 vP; uniform vec3 top; uniform vec3 bottom; void main(){ float h = clamp(vP.y / 90.0, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, h), 1.0); }",
-      }),
-    [],
-  );
+function Sky({ difficulty }: { difficulty: "easy" | "medium" | "hard" }) {
+  const shell = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
+  const mat = useMemo(() => {
+    const top = difficulty === "hard" ? 0x8a4030 : difficulty === "medium" ? 0xe2b48a : SUN;
+    const bottom = difficulty === "hard" ? 0x3a2216 : DUSK;
+    return new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        top: { value: new THREE.Color(top) },
+        bottom: { value: new THREE.Color(bottom) },
+      },
+      vertexShader:
+        "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+      fragmentShader:
+        "varying vec3 vP; uniform vec3 top; uniform vec3 bottom; void main(){ float h = clamp(vP.y / 40.0, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, h), 1.0); }",
+    });
+  }, [difficulty]);
+  useFrame(() => {
+    shell.current?.position.copy(camera.position);
+  });
   useEffect(() => () => mat.dispose(), [mat]);
   return (
-    <mesh frustumCulled={false} material={mat}>
-      <sphereGeometry args={[160, 18, 12]} />
+    <mesh ref={shell} frustumCulled={false} material={mat}>
+      <sphereGeometry args={[80, 18, 12]} />
     </mesh>
   );
 }
@@ -435,6 +442,59 @@ function Doorway({ radius }: { radius: number }) {
   );
 }
 
+function Beyond({ maps }: { maps: TerrainMaps | null }) {
+  const east = Array.from({ length: 64 }, (_, index) => 54 + index * 2.4);
+  const north = Array.from({ length: 68 }, (_, index) => 72 + index * 2.3);
+  const cuts: [number, number][] = [
+    [190, 200],
+    [206, 198],
+    [220, 206],
+    [198, 184],
+    [214, 176],
+    [180, 188],
+  ];
+  return (
+    <group>
+      {east.map((x) => (
+        <mesh key={`east-${x}`} position={[x, heightAt(x, 70) + 0.045, 70]}>
+          <boxGeometry args={[2.7, 0.06, 2.05]} />
+          <Rock maps={maps} />
+        </mesh>
+      ))}
+      {north.map((z) => (
+        <mesh key={`north-${z}`} position={[206, heightAt(206, z) + 0.045, z]}>
+          <boxGeometry args={[2.05, 0.06, 2.7]} />
+          <Rock maps={maps} />
+        </mesh>
+      ))}
+      {cuts.map(([x, z]) => (
+        <group key={`cut-${x}-${z}`} position={[x, heightAt(x, z) + 0.05, z]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[3.4, 2.5]} />
+            <meshLambertMaterial color={EARTH} />
+          </mesh>
+          <mesh position={[1.6, 0.28, 0.2]}>
+            <boxGeometry args={[0.55, 0.5, 1.3]} />
+            <Rock maps={maps} />
+          </mesh>
+        </group>
+      ))}
+      {Array.from({ length: 12 }, (_, index) => (
+        <Palm key={`river-palm-${index}`} x={22} z={30 + index * 20} />
+      ))}
+      {Array.from({ length: 7 }, (_, index) => {
+        const x = 146 + index * 3.1;
+        return (
+          <mesh key={`night-col-${index}`} position={[x, heightAt(x, 88) + 1.55, 88]}>
+            <cylinderGeometry args={[0.24, 0.32, 3.1, 8]} />
+            <Rock maps={maps} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 function Monuments({ maps }: { maps: TerrainMaps | null }) {
   const root = useRef<THREE.Group>(null);
   useLayoutEffect(() => {
@@ -448,6 +508,7 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
   }, [maps]);
   return (
     <group ref={root}>
+      <Beyond maps={maps} />
       <mesh position={[12, 58, 6]}>
         <sphereGeometry args={[5.4, 18, 14]} />
         <meshBasicMaterial color={SUN} />
@@ -457,7 +518,7 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
         return (
           <group key={`${pyramid.x}-${pyramid.z}`} position={[pyramid.x, y - 0.2, pyramid.z]}>
             <SteppedPyramid radius={pyramid.radius} height={pyramid.height} maps={maps} />
-            {pyramid.x === 48 ? <Doorway radius={pyramid.radius} /> : null}
+            {pyramid.radius >= 10 ? <Doorway radius={pyramid.radius} /> : null}
           </group>
         );
       })}
@@ -964,12 +1025,25 @@ function Walk({
   onReveal,
   onTool,
   onNote,
+  difficulty = "medium",
 }: FieldProps) {
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
+  useLayoutEffect(() => {
+    const fog =
+      difficulty === "hard"
+        ? new THREE.Fog(0x2a1c14, 14, 78)
+        : difficulty === "medium"
+          ? new THREE.Fog(0xc9b08a, 36, 210)
+          : new THREE.Fog(0xe6d3b0, 48, 280);
+    scene.fog = fog;
+    return () => {
+      scene.fog = null;
+    };
+  }, [difficulty, scene]);
   const keys = useRef(new Set<string>());
-  const yaw = useRef(SPAWN.yaw);
+  const yaw = useRef(spawnFor(difficulty).yaw);
   const speed = useRef(0);
-  const at = useRef({ x: SPAWN.x, z: SPAWN.z });
+  const at = useRef({ x: spawnFor(difficulty).x, z: spawnFor(difficulty).z });
   const pits = useRef(new Map<string, Pit>());
   const lastTool = useRef<ToolId | null>(null);
   const lastNote = useRef("");
@@ -1006,12 +1080,13 @@ function Walk({
   }, []);
 
   useEffect(() => {
-    at.current = { x: SPAWN.x, z: SPAWN.z };
-    yaw.current = SPAWN.yaw;
+    const start = spawnFor(difficulty);
+    at.current = { x: start.x, z: start.z };
+    yaw.current = start.yaw;
     speed.current = 0;
-    pose.current = { x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw };
+    pose.current = { x: start.x, z: start.z, yaw: start.yaw };
     onSurvey(paintChart(sites));
-  }, [sites, onSurvey, pose]);
+  }, [sites, onSurvey, pose, difficulty]);
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -1121,6 +1196,8 @@ function Walk({
     look.current.set(nx + fx * 2.2, y + 1.28, nz + fz * 2.2);
     camera.lookAt(look.current);
     if (sun.current) {
+      sun.current.intensity = difficulty === "hard" ? 0.42 : 1.55;
+      sun.current.color.setHex(difficulty === "hard" ? 0xc48a5a : 0xf6c98a);
       sun.current.position.set(nx - 28, y + 14, nz + 8);
       sun.current.target.position.set(nx, y, nz);
       sun.current.target.updateMatrixWorld();
@@ -1208,7 +1285,7 @@ function Walk({
 
   return (
     <>
-      <Sky />
+      <Sky difficulty={difficulty} />
       <hemisphereLight args={[SUN, SOIL, 0.72]} />
       <ambientLight intensity={0.22} />
       <directionalLight
@@ -1243,7 +1320,7 @@ export function FieldWorld(props: FieldProps) {
       className="sands-canvas absolute inset-0"
       shadows
       dpr={[1, 1.75]}
-      camera={{ fov: 46, near: 0.1, far: 240, position: [SPAWN.x, 8, SPAWN.z + 12] }}
+      camera={{ fov: 46, near: 0.1, far: 480, position: [SPAWN.x, 8, SPAWN.z + 12] }}
       gl={{ antialias: true, alpha: false }}
     >
       <Walk {...props} />
