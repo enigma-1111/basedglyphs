@@ -68,7 +68,7 @@ export const PLACES: Landmark[] = [
     id: "house",
     kind: "pyramid",
     name: "Great house",
-    blurb: "A limestone pyramid on the north rise. Walk around the stone.",
+    blurb: "A limestone pyramid on the north rise. A gold door faces the road.",
     x: 48,
     z: 14,
   },
@@ -337,20 +337,36 @@ export function paintChart(glyphs: BuriedGlyph[]): WorldSurvey {
     ctx.arc(point.px, point.py, 5, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.lineWidth = 2;
+  ctx.fillStyle = "#e4d2ae";
+  const roadLeft = plot(46.9, 22);
+  const roadRight = plot(49.1, 80);
+  ctx.fillRect(roadLeft.px, roadLeft.py, roadRight.px - roadLeft.px, roadRight.py - roadLeft.py);
+  ctx.fillStyle = "#d7c4a2";
+  for (const [x, z] of [
+    [43.4, 73.5],
+    [52.6, 73.2],
+    [44.2, 68.4],
+    [52.2, 67.6],
+  ] as const) {
+    const stall = plot(x, z);
+    ctx.fillRect(stall.px - 6, stall.py - 4, 12, 8);
+  }
+  ctx.lineWidth = 1.4;
   for (const pyramid of PYRAMIDS) {
     const point = plot(pyramid.x, pyramid.z);
     const radius = (pyramid.radius / SPAN) * size;
-    ctx.fillStyle = "#f0e2c6";
-    ctx.strokeStyle = "#6a4b2c";
-    ctx.beginPath();
-    ctx.moveTo(point.px, point.py - radius);
-    ctx.lineTo(point.px + radius * 0.82, point.py + radius * 0.62);
-    ctx.lineTo(point.px - radius * 0.82, point.py + radius * 0.62);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    for (let course = 0; course < 4; course += 1) {
+      const span = radius * (1 - course * 0.2);
+      ctx.strokeStyle = course === 0 ? "#5c4030" : "#efe2c8";
+      ctx.strokeRect(point.px - span, point.py - span, span * 2, span * 2);
+    }
+    const cap = radius * 0.28;
+    ctx.fillStyle = "#efe2c8";
+    ctx.fillRect(point.px - cap, point.py - cap, cap * 2, cap * 2);
   }
+  const door = plot(48, 21.5);
+  ctx.fillStyle = "#3a2418";
+  ctx.fillRect(door.px - 3, door.py - 5, 6, 8);
   ctx.fillStyle = "#3b2918";
   ctx.font = "600 15px Cinzel, serif";
   const labels: [string, number, number][] = [

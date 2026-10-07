@@ -72,6 +72,8 @@ const DUSK = 0xc46a32;
 const SOIL = 0x8d5a36;
 const COPPER = 0xb87333;
 const AWNING = 0x8c4a32;
+const INDIGO = 0x243e68;
+const SAFFRON = 0xc47a2c;
 const DOOR = 0x3a2418;
 const LINEN = 0xd8c6a4;
 const texCache = new Map<string, THREE.Texture>();
@@ -377,6 +379,62 @@ function SteppedPyramid({
   );
 }
 
+function Stall({ x, z, cloth }: { x: number; z: number; cloth: number }) {
+  const y = heightAt(x, z);
+  return (
+    <group position={[x, y, z]}>
+      {[-0.7, 0.7].map((side) => (
+        <mesh key={side} position={[side, 0.7, 0]}>
+          <boxGeometry args={[0.08, 1.4, 0.08]} />
+          <meshLambertMaterial color={BARK} />
+        </mesh>
+      ))}
+      <mesh position={[0, 1.45, 0.15]} rotation={[0.35, 0, 0]}>
+        <boxGeometry args={[1.7, 0.06, 0.9]} />
+        <meshLambertMaterial color={cloth} />
+      </mesh>
+      <mesh position={[0, 0.22, 0.15]}>
+        <boxGeometry args={[1.15, 0.36, 0.5]} />
+        <meshLambertMaterial color={MUD} />
+      </mesh>
+      <mesh position={[0.85, 0.28, 0.2]}>
+        <cylinderGeometry args={[0.12, 0.16, 0.42, 8]} />
+        <meshLambertMaterial color={POT} />
+      </mesh>
+    </group>
+  );
+}
+
+function Doorway({ radius }: { radius: number }) {
+  return (
+    <group position={[0, 1.35, radius + 0.15]}>
+      <mesh>
+        <boxGeometry args={[1.35, 2.15, 0.55]} />
+        <meshLambertMaterial color={DOOR} />
+      </mesh>
+      <mesh position={[0, 1.16, 0.3]}>
+        <boxGeometry args={[1.7, 0.14, 0.08]} />
+        <meshLambertMaterial color={GOLD} />
+      </mesh>
+      {[-0.78, 0.78].map((side) => (
+        <mesh key={side} position={[side, 0.05, 0.3]}>
+          <boxGeometry args={[0.12, 2.2, 0.08]} />
+          <meshLambertMaterial color={GOLD} />
+        </mesh>
+      ))}
+      <mesh position={[1.15, 0.15, 0.55]}>
+        <cylinderGeometry args={[0.1, 0.14, 0.7, 6]} />
+        <meshLambertMaterial color={STONE} />
+      </mesh>
+      <mesh position={[1.15, 0.62, 0.55]}>
+        <sphereGeometry args={[0.09, 8, 8]} />
+        <meshBasicMaterial color={0xffd29a} />
+      </mesh>
+      <pointLight position={[1.15, 0.7, 1.1]} color={0xffb060} intensity={6} distance={9} decay={2} />
+    </group>
+  );
+}
+
 function Monuments({ maps }: { maps: TerrainMaps | null }) {
   const root = useRef<THREE.Group>(null);
   useLayoutEffect(() => {
@@ -399,10 +457,23 @@ function Monuments({ maps }: { maps: TerrainMaps | null }) {
         return (
           <group key={`${pyramid.x}-${pyramid.z}`} position={[pyramid.x, y - 0.2, pyramid.z]}>
             <SteppedPyramid radius={pyramid.radius} height={pyramid.height} maps={maps} />
+            {pyramid.x === 48 ? <Doorway radius={pyramid.radius} /> : null}
           </group>
         );
       })}
-      <Pylon x={50} z={26} maps={maps} />
+      {Array.from({ length: 16 }, (_, index) => {
+        const z = 30 + index * 3.1;
+        return (
+          <mesh key={`road-${z}`} position={[48, heightAt(48, z) + 0.045, z]}>
+            <boxGeometry args={[2.15, 0.06, 2.5]} />
+            <Rock maps={maps} />
+          </mesh>
+        );
+      })}
+      <Stall x={43.4} z={73.5} cloth={INDIGO} />
+      <Stall x={52.6} z={73.2} cloth={SAFFRON} />
+      <Stall x={44.2} z={68.4} cloth={SAFFRON} />
+      <Stall x={52.2} z={67.6} cloth={INDIGO} />
       <Sphinx x={36} z={24} maps={maps} />
       {PLACES.filter((place) => place.kind === "obelisk").map((place) => {
         const y = heightAt(place.x, place.z);
